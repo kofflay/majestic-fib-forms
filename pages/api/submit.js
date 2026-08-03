@@ -1,4 +1,5 @@
 import { verifyToken } from '../../lib/discord';
+import { isBlacklisted } from '../../lib/blacklist';
 
 // ===== СПИСОК ВСЕХ ОТДЕЛОВ С ВЕБХУКАМИ И РОЛЯМИ =====
 const DEPARTMENTS = {
@@ -111,6 +112,13 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // ===== ПРОВЕРКА ЧЕРНОГО СПИСКА =====
+  if (isBlacklisted(user.id)) {
+    return res.status(403).json({ 
+      error: '⛔ Ваш доступ к системе заявок заблокирован. Обратитесь к администрации.' 
+    });
+  }
+
   const { type, userId, username, department, ...formData } = req.body;
   
   let webhookUrl;
@@ -118,7 +126,6 @@ export default async function handler(req, res) {
 
   // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   if (type === 'report') {
-    // Для отчётов — по отделам (включая IB и Trainee)
     const dept = DEPARTMENTS[department];
     if (!dept) {
       return res.status(400).json({ 
@@ -131,7 +138,6 @@ export default async function handler(req, res) {
         error: `Вебхук для отдела "${dept.name}" не настроен на сервере` 
       });
     }
-    // Добавляем пинг двух ролей для отдела
     if (dept.roleId) {
       roleMentions += `<@&${dept.roleId}> `;
     }
@@ -139,7 +145,6 @@ export default async function handler(req, res) {
       roleMentions += `<@&${dept.roleId2}>`;
     }
   } else if (type === 'transfer') {
-    // Для переводов — по отделам (без IB и Trainee)
     const deptKey = department;
     if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
       return res.status(400).json({ 
@@ -152,7 +157,6 @@ export default async function handler(req, res) {
         error: `Вебхук для перевода в отдел "${department}" не настроен на сервере` 
       });
     }
-    // Добавляем пинг двух ролей для отдела
     const deptInfo = DEPARTMENTS[department];
     if (deptInfo && deptInfo.roleId) {
       roleMentions += `<@&${deptInfo.roleId}> `;
@@ -161,12 +165,10 @@ export default async function handler(req, res) {
       roleMentions += `<@&${deptInfo.roleId2}>`;
     }
   } else {
-    // Для повышения — общий вебхук с пингом роли
     webhookUrl = webhooks[type];
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
     }
-    // Пинг роли для повышений
     roleMentions = '<@&1274110499356934211>';
   }
 
@@ -185,7 +187,6 @@ export default async function handler(req, res) {
     timestamp: new Date().toISOString()
   };
 
-  // ===== ФОРМИРУЕМ СООБЩЕНИЕ =====
   const content = roleMentions.trim() || undefined;
 
   try {
@@ -288,7 +289,6 @@ function buildFields(type, department, data, userId, username) {
       { name: '📝 Причина перевода', value: data.reason || 'Не указано', inline: false }
     ];
 
-    // Если желаемый отдел — CID, добавляем доп. поля
     if (data.targetDepartment === 'cid') {
       fields.push(
         { name: '📋 Чем занимается CID/DB?', value: data.cidWhatIs || 'Не указано', inline: false },
@@ -300,7 +300,6 @@ function buildFields(type, department, data, userId, username) {
       );
     }
 
-    // Если желаемый отдел — FA, добавляем доп. поля
     if (data.targetDepartment === 'fa') {
       fields.push(
         { name: '📋 Знание правил ПОИП', value: data.faRules || 'Не указано', inline: false },
@@ -308,7 +307,6 @@ function buildFields(type, department, data, userId, username) {
       );
     }
 
-    // Добавляем базовые поля в конец
     fields.push(...baseFields);
     return fields;
   }

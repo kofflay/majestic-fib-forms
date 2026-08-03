@@ -10,17 +10,10 @@ export default async (req, res) => {
     return res.status(500).json({ error: 'Missing Discord client credentials in environment variables' });
   }
 
-  // 1. Динамически формируем redirectUri на основе реального запроса.
-  // Это гарантирует, что URL, который мы шлем в Discord, ТОЧНО совпадает с тем, 
-  // который браузер уже использовал для получения кода.
-  const protocol = req.headers.referer?.startsWith('https') ? 'https' : 'http';
-  const host = req.headers.host;
-  const redirectUri = `${protocol}://${host}/api/auth/callback`;
-  
-  // Кодируем для отправки в body запроса
+  // ЖЁСТКО задаём redirectUri — он должен ТОЧНО совпадать с тем, что в Discord Developer Portal
+  const redirectUri = 'https://majestic-fib-forms.vercel.app/api/auth/callback';
   const encodedRedirectUri = encodeURIComponent(redirectUri);
 
-  // 2. Обмениваем код на токен
   const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
     method: 'POST',
     headers: {
@@ -31,7 +24,7 @@ export default async (req, res) => {
       client_secret: clientSecret,
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: encodedRedirectUri, // Отправляем тот самый URL, который сработал
+      redirect_uri: encodedRedirectUri,
     }),
   });
 
@@ -39,7 +32,6 @@ export default async (req, res) => {
 
   if (!tokenResponse.ok) {
     console.error('Token exchange failed:', tokenData);
-    // Если ошибка про redirect_uri, она будет здесь. Но теперь она должна исчезнуть.
     return res.status(tokenData.error_code || 400).json({ 
       error: 'Failed to exchange code for token', 
       details: tokenData 
@@ -48,7 +40,6 @@ export default async (req, res) => {
 
   const accessToken = tokenData.access_token;
 
-  // 3. Получаем данные пользователя
   const userResponse = await fetch('https://discord.com/api/users/@me', {
     headers: {
       Authorization: `Bearer \${accessToken}`,
@@ -62,7 +53,6 @@ export default async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch user data', details: user });
   }
 
-  // 4. Возвращаем успех
   return res.json({
     status: 'success',
     message: 'Authentication successful',

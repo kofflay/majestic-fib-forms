@@ -1,5 +1,7 @@
 export default (req, res) => {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  // 👇 ВОТ ЗДЕСЬ МЕНЯЕМ ТОЛЬКО ЧАСТЬ ДО .vercel.app
+  const baseUrl = 'https://majestic-fib-forms.vercel.app';
+  
   const redirectUri = `${baseUrl}/api/auth/callback`;
   const clientId = process.env.DISCORD_CLIENT_ID;
   const scope = 'identify';

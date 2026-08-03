@@ -8,13 +8,14 @@ export const authOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
       authorization: {
         params: {
-          scope: "identify guilds" // КРИТИЧНО: без этого /users/@me вернет 401
+          scope: "identify guilds", // Без этого /users/@me будет возвращать 401
         },
       },
     }),
   ],
   callbacks: {
     async jwt({ token, account }) {
+      // Сохраняем access_token из Discord в JWT токен сессии
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
@@ -22,6 +23,7 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
+      // Пробрасываем токен в объект session, чтобы использовать его в API
       if (token.accessToken) {
         session.accessToken = token.accessToken;
       }

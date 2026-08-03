@@ -120,13 +120,17 @@ export default async function handler(req, res) {
     });
   }
 
-  const { type, userId, username, department, ...formData } = req.body;
+  // ===== РАЗБИРАЕМ ЗАПРОС =====
+  // Для отчётов используем department
+  // Для переводов используем targetDepartment
+  const { type, userId, username, department, targetDepartment, ...formData } = req.body;
   
   let webhookUrl;
   let roleMentions = '';
 
   // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   if (type === 'report') {
+    // Для отчётов — по отделам (включая IB и Trainee)
     const dept = DEPARTMENTS[department];
     if (!dept) {
       return res.status(400).json({ 
@@ -146,7 +150,8 @@ export default async function handler(req, res) {
       roleMentions += `<@&${dept.roleId2}>`;
     }
   } else if (type === 'transfer') {
-    const deptKey = department;
+    // Для переводов — по отделам (без IB и Trainee)
+    const deptKey = targetDepartment;
     if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
       return res.status(400).json({ 
         error: 'Некорректный отдел для перевода' 
@@ -155,10 +160,10 @@ export default async function handler(req, res) {
     webhookUrl = TRANSFER_WEBHOOKS[deptKey];
     if (!webhookUrl) {
       return res.status(500).json({ 
-        error: `Вебхук для перевода в отдел "${department}" не настроен на сервере` 
+        error: `Вебхук для перевода в отдел "${targetDepartment}" не настроен на сервере` 
       });
     }
-    const deptInfo = DEPARTMENTS[department];
+    const deptInfo = DEPARTMENTS[targetDepartment];
     if (deptInfo && deptInfo.roleId) {
       roleMentions += `<@&${deptInfo.roleId}> `;
     }
@@ -166,7 +171,7 @@ export default async function handler(req, res) {
       roleMentions += `<@&${deptInfo.roleId2}>`;
     }
   } else if (type === 'highrank') {
-    // ===== ОТДЕЛЬНЫЙ ВЕБХУК ДЛЯ ХАЙ РАНГОВ =====
+    // Для отчёта на повышение (Хай Ранги) — отдельный вебхук
     webhookUrl = webhooks.highrank;
     if (!webhookUrl) {
       return res.status(500).json({ 
@@ -175,6 +180,7 @@ export default async function handler(req, res) {
     }
     roleMentions = '<@&1289343511354671125>';
   } else {
+    // Для повышения — общий вебхук с пингом роли
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
@@ -184,13 +190,13 @@ export default async function handler(req, res) {
 
   // ===== ФОРМИРУЕМ EMBED =====
   const embed = {
-    title: getFormTitle(type, department),
+    title: getFormTitle(type, department, targetDepartment),
     color: getFormColor(type),
     author: {
       name: username,
       icon_url: `https://cdn.discordapp.com/avatars/${userId}/${user.avatar}.png`
     },
-    fields: buildFields(type, department, formData, userId, username),
+    fields: buildFields(type, department, targetDepartment, formData, userId, username),
     footer: {
       text: 'Majestic FIB Forms • ' + new Date().toLocaleDateString('ru-RU'),
     },
@@ -226,7 +232,7 @@ export default async function handler(req, res) {
 
 // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 
-function getFormTitle(type, department) {
+function getFormTitle(type, department, targetDepartment) {
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
     return `📋 Отчёт о повышении • ${dept ? dept.emoji + ' ' + dept.name : 'Отдел'}`;
@@ -243,7 +249,7 @@ function getFormTitle(type, department) {
       'fna': 'FNA',
       'nsb': 'NSB'
     };
-    const deptName = deptNames[department] || 'Отдел';
+    const deptName = deptNames[targetDepartment] || 'Отдел';
     return `🔄 Запрос на перевод в ${deptName}`;
   }
   if (type === 'highrank') {
@@ -265,7 +271,7 @@ function getFormColor(type) {
   return colors[type] || 0x5865F2;
 }
 
-function buildFields(type, department, data, userId, username) {
+function buildFields(type, department, targetDepartment, data, userId, username) {
   const baseFields = [
     { name: '👤 Отправитель', value: `<@${userId}>`, inline: true },
     { name: '🆔 Discord ID', value: userId, inline: true }

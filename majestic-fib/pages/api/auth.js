@@ -1,28 +1,22 @@
-export const config = {
-  runtime: 'edge',
-};
-
 const CLIENT_ID = "1533765326213222491";
-const CLIENT_SECRET = "ZTzzQ3uggsHu2LBiPpYWtbMqW0JKAP_V";
+const CLIENT_SECRET = "ZTzzQ3uggsHu2LBiPpYWtbMqW0JKAP_V"; // Убедитесь, что тут ваш новый секрет
 const REDIRECT_URI = "https://vercel.app";
 
-export default async function handler(req) {
+export default async function handler(req, res) {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({ error: 'Код авторизации не найден в ссылке' });
+  }
+
   try {
-    // Получаем код напрямую из URL стандартным методом
-    const url = new URL(req.url);
-    const code = url.searchParams.get('code');
-
-    if (!code) {
-      return new Response(JSON.stringify({ error: 'Код авторизации Дискорда не найден в ссылке' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Отправляем запрос обмена в Дискорд
+    // Отправляем запрос обмена токенов в Дискорд с полной маскировкой под браузер
     const tokenResponse = await fetch('https://discord.com', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
       body: new URLSearchParams({
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET,
@@ -35,31 +29,30 @@ export default async function handler(req) {
 
     const tokenData = await tokenResponse.json();
 
-    // Если Дискорд отклонил ключи, выводим точную техническую причину вместо общей ошибки
     if (tokenData.error) {
-      return new Response(JSON.stringify({ 
+      return res.status(400).json({ 
         error: 'Дискорд отклонил запрос авторизации', 
         details: tokenData.error_description || tokenData.error 
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
       });
     }
 
     // Запрашиваем реальный профиль пользователя
     const userResponse = await fetch('https://discord.com', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      headers: { 
+        Authorization: `Bearer ${tokenData.access_token}`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
     });
     const userData = await userResponse.json();
 
     // Перенаправляем обратно на главную форму
     const profileData = encodeURIComponent(JSON.stringify(userData));
-    return Response.redirect(`https://vercel.app{profileData}`);
+    return res.redirect(`/?user=${profileData}`);
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Критическая ошибка на сервере Vercel', message: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+    return res.status(500).json({ 
+      error: 'Критическая ошибка на сервере Vercel', 
+      message: error.message 
     });
   }
 }

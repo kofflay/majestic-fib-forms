@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   const redirectUri = `${protocol}://${host}/api/auth`;
 
   try {
+    // Обмениваем временный код на секретный токен доступа
     const tokenResponse = await fetch('https://discord.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -26,20 +27,17 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     if (tokenData.error) return res.status(400).json({ error: tokenData.error_description });
 
+    // Запрашиваем реальный профиль пользователя
     const userResponse = await fetch('https://discord.com', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const userData = await userResponse.json();
 
-    res.setHeader('Content-Type', 'text/html');
-    res.write(`
-      <script>
-        window.opener.postMessage({ type: 'DISCORD_AUTH_SUCCESS', user: ${JSON.stringify(userData)} }, '*');
-        window.close();
-      </script>
-    `);
-    res.end();
+    // Безопасно перенаправляем пользователя обратно на главную страницу, прикрепив его данные в URL
+    const profileData = encodeURIComponent(JSON.stringify(userData));
+    res.redirect(`/?user=${profileData}`);
+
   } catch (error) {
-    res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 }

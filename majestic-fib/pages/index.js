@@ -6,18 +6,14 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Проверяем, не пришел ли пользователь только что от Discord
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
     if (code) {
-      // Если есть код, значит мы на странице callback (или редиректе)
-      // Нам нужно вызвать наш API callback, чтобы получить данные пользователя
       handleCallback(code);
       return;
     }
 
-    // 2. Если кода нет, просто берем из localStorage (обычный вход)
     const stored = localStorage.getItem('rp_user');
     if (stored) {
       setUser(JSON.parse(stored));
@@ -25,25 +21,18 @@ export default function Index() {
     setLoading(false);
   }, []);
 
-  // Функция для обмена кода на данные пользователя
   const handleCallback = async (code) => {
     try {
-      // Вызываем тот самый callback.js, который мы создали
-      // Он вернет JSON { id, username, avatar }
-      const res = await fetch(`/api/auth/callback?code=\${code}`);
+      const res = await fetch(`/api/auth/callback?code=${code}`);
       const data = await res.json();
 
       if (data.id) {
-        // Сохраняем в localStorage
         localStorage.setItem('rp_user', JSON.stringify({
           id: data.id,
           username: data.username,
           avatar: data.avatar
         }));
-        
         setUser(data);
-        
-        // Убираем ?code=... из URL, чтобы при обновлении страницы не срабатывало снова
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
         console.error('Ошибка авторизации:', data.error);

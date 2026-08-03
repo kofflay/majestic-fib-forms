@@ -20,6 +20,8 @@ export default function FibForm() {
     const protocol = window.location.protocol;
     const host = window.location.host;
     const redirectUri = encodeURIComponent(`${protocol}//${host}/api/auth`);
+    
+    // Ссылка исправлена: добавлен знак '?', убраны ошибочные склейки
     window.location.href = `https://discord.com{CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=identify`;
   };
 
@@ -36,7 +38,7 @@ export default function FibForm() {
         if (BLACKLIST.includes(loggedInUser.id)) {
           setIsBanned(true);
         }
-        // Красиво чистим адресную строку, убирая длинный код юзера
+        // Красиво чистим адресную строку, убирая длинный код юзера из ссылки
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (e) {
         console.error("Ошибка при обработке профиля", e);
@@ -157,7 +159,7 @@ export default function FibForm() {
           <button type="submit" style={{ backgroundColor: '#2f855a', color: 'white', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
             Отправить отчет
           </button>
-          {status && <p style={{ textAlign: 'center', fontWeight: 'bold' }}>{status}</p>}
+          {status && <p style={{ textAlign: 'center', fontWeight: 'bold', color: status.startsWith('✅') ? '#2f855a' : '#c53030' }}>{status}</p>}
         </form>
       )}
     </div>

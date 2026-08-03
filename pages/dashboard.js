@@ -53,7 +53,7 @@ export default function Dashboard() {
         <div className="card" onClick={() => router.push('/forms/promotion')}>
           <div className="card-icon">📈</div>
           <h3>Запрос на повышение</h3>
-          <p>Подать заявку на повышение по рангам</p>
+          <p>Подать запрос на повышение</p>
         </div>
 
         {/* Кнопка 2: Перевод в отдел */}
@@ -70,11 +70,11 @@ export default function Dashboard() {
           <p>Подать отчёт о повышении для своего отдела</p>
         </div>
 
-        {/* 👇 НОВАЯ КНОПКА 4: Хай Ранги */}
+        {/* Кнопка 4: Хай Ранги */}
         <div className="card" onClick={() => router.push('/forms/high-rank-report')}>
           <div className="card-icon">🌟</div>
           <h3>Отчёт на повышение (Хай Ранги)</h3>
-          <p>Для повышения с 6-го по 15-й ранг</p>
+          <p>Повышение для старшего состава</p>
         </div>
       </div>
 

@@ -103,9 +103,8 @@ const webhooks = {
   resignation: process.env.WEBHOOK_RESIGNATION
 };
 
-// ===== ОТПРАВКА В DISCORD (ПЕРЕНОС ИЗ APPS SCRIPT) =====
+// ===== ОТПРАВКА В DISCORD С ПОВТОРНЫМИ ПОПЫТКАМИ =====
 async function sendToDiscord(webhookUrl, data, retries = 3) {
-  // Заменяем discord.com на discordapp.com (как в Apps Script)
   const safeWebhook = webhookUrl.replace('discord.com', 'discordapp.com');
   
   let lastError = null;
@@ -118,14 +117,12 @@ async function sendToDiscord(webhookUrl, data, retries = 3) {
         body: JSON.stringify(data)
       });
       
-      // Логируем код ответа (как Logger.log в Apps Script)
       console.log(`📊 Код ответа Discord [попытка ${i + 1}]: ${response.status}`);
       
       if (response.ok) {
         return { success: true, status: response.status };
       }
       
-      // Если Discord говорит "Too Many Requests" — ждём и пробуем снова
       if (response.status === 429) {
         const retryAfter = parseInt(response.headers.get('Retry-After')) || 5;
         console.warn(`⚠️ Discord вернул 429. Ждём ${retryAfter} секунд...`);
@@ -133,7 +130,6 @@ async function sendToDiscord(webhookUrl, data, retries = 3) {
         continue;
       }
       
-      // Другие ошибки (403, 404, 500 и т.д.)
       const errorText = await response.text();
       console.error(`❌ Ошибка Discord: ${response.status} - ${errorText}`);
       return { 
@@ -263,7 +259,7 @@ export default async function handler(req, res) {
 
   const content = roleMentions.trim() || undefined;
 
-  // ===== ОТПРАВЛЯЕМ В DISCORD (С ПОВТОРНЫМИ ПОПЫТКАМИ) =====
+  // ===== ОТПРАВЛЯЕМ В DISCORD =====
   const result = await sendToDiscord(webhookUrl, {
     content: content,
     embeds: [embed],
@@ -354,7 +350,7 @@ function buildFields(type, department, targetDepartment, data, userId, username)
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '📌 Ваш ранг', value: data.rank || 'Не указан', inline: false },
       { name: '🏢 Текущий отдел', value: data.currentDepartment || 'Не указано', inline: false },
-      { name: '🎯 Желаемый отдел', value: data.targetDepartment || 'Не указано', inline: false },
+      { name: '🎯 Желаемый отдел', value: targetDepartment || 'Не указано', inline: false },
       { name: '📝 Причина перевода', value: data.reason || 'Не указано', inline: false }
     ];
 

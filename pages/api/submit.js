@@ -171,11 +171,15 @@ function buildFields(type, department, data, userId, username) {
 
 if (type === 'report') {
   const dept = DEPARTMENTS[department];
+  const instructorText = data.isInstructor === 'yes' ? '✅ Да' : '❌ Нет';
+  
   return [
     { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
     { name: '🏢 Отдел', value: dept ? dept.emoji + ' ' + dept.name : 'Не указан', inline: false },
     { name: '📌 Текущий ранг', value: data.currentRank || 'Не указан', inline: false },
     { name: '🎯 Целевой ранг', value: data.targetRank || 'Не указан', inline: false },
+    // Добавляем поле с инструктором (если есть)
+    ...(data.isInstructor ? [{ name: '👨‍🏫 Назначен на инструктора', value: instructorText, inline: false }] : []),
     { name: '🔗 Ссылки на работу', value: data.workLinks || 'Не указаны', inline: false },
     ...baseFields
   ];

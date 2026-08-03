@@ -1,22 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-// ===== ВАРИАНТЫ РАНГОВ (1-15) =====
 const RANK_OPTIONS = [
-  '1-2 ранг',
-  '2-3 ранг',
-  '3-4 ранг',
-  '4-5 ранг',
-  '5-6 ранг',
-  '6-7 ранг',
-  '7-8 ранг',
-  '8-9 ранг',
-  '9-10 ранг',
-  '10-11 ранг',
-  '11-12 ранг',
-  '12-13 ранг',
-  '13-14 ранг',
-  '14-15 ранг'
+  '1-2 ранг', '2-3 ранг', '3-4 ранг', '4-5 ранг', '5-6 ранг',
+  '6-7 ранг', '7-8 ранг', '8-9 ранг', '9-10 ранг', '10-11 ранг',
+  '11-12 ранг', '12-13 ранг', '13-14 ранг', '14-15 ранг'
 ];
 
 export default function HighRankReportForm() {
@@ -53,8 +41,6 @@ export default function HighRankReportForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'highrank',
-          userId: user.id,
-          username: user.username,
           fullName: formData.fullName,
           rankRange: formData.rankRange,
           workLink: formData.workLink
@@ -94,7 +80,6 @@ export default function HighRankReportForm() {
         <h1>🌟 Отчёт на повышение (Хай Ранги)</h1>
         
         <form onSubmit={handleSubmit}>
-          {/* ПОЛЕ 1: Имя Фамилия + Статик */}
           <div className="form-group">
             <label>Имя Фамилия + Статик *</label>
             <input 
@@ -106,7 +91,6 @@ export default function HighRankReportForm() {
             />
           </div>
 
-          {/* ПОЛЕ 2: С какого на какой ранг */}
           <div className="form-group">
             <label>С какого на какой ранг вы повышаетесь *</label>
             <select
@@ -117,14 +101,11 @@ export default function HighRankReportForm() {
             >
               <option value="">-- Выберите диапазон рангов --</option>
               {RANK_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </div>
 
-          {/* ПОЛЕ 3: Ссылка на проделанную работу */}
           <div className="form-group">
             <label>Ссылка на проделанную работу *</label>
             <textarea 
@@ -136,7 +117,6 @@ export default function HighRankReportForm() {
             />
           </div>
 
-          {/* ПОЛЕ 4: Discord ID */}
           <div className="form-group">
             <label>Discord ID</label>
             <input 
@@ -147,11 +127,7 @@ export default function HighRankReportForm() {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={submitting}
-          >
+          <button type="submit" className="submit-btn" disabled={submitting}>
             {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
           </button>
         </form>

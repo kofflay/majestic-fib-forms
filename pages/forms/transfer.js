@@ -123,7 +123,18 @@ export default function TransferForm() {
         body: JSON.stringify({
           type: 'transfer',
           targetDepartment: formData.targetDepartment,
-          ...formData
+          fullName: formData.fullName,
+          rank: formData.rank,
+          currentDepartment: formData.currentDepartment,
+          reason: formData.reason,
+          cidWhatIs: formData.cidWhatIs,
+          cidExperience: formData.cidExperience,
+          cidExamples: formData.cidExamples,
+          cidServers: formData.cidServers,
+          cidKnowledge: formData.cidKnowledge,
+          cidLawKnowledge: formData.cidLawKnowledge,
+          faRules: formData.faRules,
+          faPrevious: formData.faPrevious
         })
       });
 

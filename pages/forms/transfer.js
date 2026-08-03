@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-// ===== СПИСОК ОТДЕЛОВ (БЕЗ IB) =====
 const DEPARTMENTS = [
   { id: 'cid', name: 'CID (Criminal Investigation Department)', emoji: '🚔' },
   { id: 'fa', name: 'FA (Free Agent)', emoji: '🆓' },
@@ -15,31 +14,21 @@ const DEPARTMENTS = [
   { id: 'trainee', name: 'Trainee (Стажёр)', emoji: '📖' }
 ];
 
-// ===== РАНГИ (1-10) =====
 const RANKS = [
-  { value: '1', label: '1' },
-  { value: '2', label: '2' },
-  { value: '3', label: '3' },
-  { value: '4', label: '4' },
-  { value: '5', label: '5' },
-  { value: '6', label: '6' },
-  { value: '7', label: '7' },
-  { value: '8', label: '8' },
-  { value: '9', label: '9' },
-  { value: '10', label: '10' }
+  { value: '1', label: '1' }, { value: '2', label: '2' },
+  { value: '3', label: '3' }, { value: '4', label: '4' },
+  { value: '5', label: '5' }, { value: '6', label: '6' },
+  { value: '7', label: '7' }, { value: '8', label: '8' },
+  { value: '9', label: '9' }, { value: '10', label: '10' }
 ];
 
-// ===== ВАРИАНТЫ ДЛЯ ОПЫТА CID =====
 const EXPERIENCE_OPTIONS = [
   'Нет опыта, но хочу попробовать',
   'Был средним составом в подобных отделах',
   'Занимал руководящую должность'
 ];
 
-// ===== ЦИФРЫ ДЛЯ ОЦЕНОК (1-10) =====
-const RATING_OPTIONS = [
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
-];
+const RATING_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
 export default function TransferForm() {
   const router = useRouter();
@@ -52,36 +41,24 @@ export default function TransferForm() {
     currentDepartment: '',
     targetDepartment: '',
     reason: '',
-    // CID поля
     cidWhatIs: '',
     cidExperience: '',
     cidExamples: '',
     cidServers: '',
     cidKnowledge: '',
     cidLawKnowledge: '',
-    // FA поля
     faRules: '',
     faPrevious: ''
   });
 
-  // ===== ПРОВЕРКИ =====
   const targetDept = formData.targetDepartment;
   const currentDept = formData.currentDepartment;
   const rankNum = parseInt(formData.rank);
 
-  // Показывать ли доп. поля для CID
   const showCidFields = targetDept === 'cid';
-  
-  // Показывать ли доп. поля для FA
   const showFaFields = targetDept === 'fa';
-
-  // Проверка: нельзя выбрать тот же отдел
   const isSameDepartment = currentDept && targetDept && currentDept === targetDept;
-
-  // Проверка: для FA нужен ранг 5+
   const isFaRankValid = targetDept !== 'fa' || (targetDept === 'fa' && rankNum >= 5);
-
-  // Проверка: заполнены ли доп. поля для CID
   const isCidComplete = !showCidFields || (
     formData.cidWhatIs.trim() &&
     formData.cidExperience &&
@@ -90,14 +67,11 @@ export default function TransferForm() {
     formData.cidKnowledge &&
     formData.cidLawKnowledge
   );
-
-  // Проверка: заполнены ли доп. поля для FA
   const isFaComplete = !showFaFields || (
     formData.faRules.trim() &&
     formData.faPrevious.trim()
   );
 
-  // Все проверки
   const isFormValid = () => {
     if (!formData.fullName.trim()) return false;
     if (!formData.rank) return false;
@@ -111,7 +85,6 @@ export default function TransferForm() {
     return true;
   };
 
-  // ===== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЯ =====
   useEffect(() => {
     fetch('/api/me')
       .then(res => res.json())
@@ -125,7 +98,6 @@ export default function TransferForm() {
       });
   }, []);
 
-  // ===== ОТПРАВКА =====
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -150,8 +122,7 @@ export default function TransferForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'transfer',
-          userId: user.id,
-          username: user.username,
+          targetDepartment: formData.targetDepartment,
           ...formData
         })
       });
@@ -189,9 +160,6 @@ export default function TransferForm() {
         <h1>🔄 Перевод в отдел</h1>
         
         <form onSubmit={handleSubmit}>
-          {/* ===== ОБЩИЕ ПОЛЯ ===== */}
-          
-          {/* ПОЛЕ 1: Имя Фамилия + Статик */}
           <div className="form-group">
             <label>Имя Фамилия + Статик *</label>
             <input 
@@ -203,7 +171,6 @@ export default function TransferForm() {
             />
           </div>
 
-          {/* ПОЛЕ 2: Ранг */}
           <div className="form-group">
             <label>Ваш ранг *</label>
             <select
@@ -214,14 +181,11 @@ export default function TransferForm() {
             >
               <option value="">-- Выберите ранг --</option>
               {RANKS.map(rank => (
-                <option key={rank.value} value={rank.value}>
-                  {rank.label}
-                </option>
+                <option key={rank.value} value={rank.value}>{rank.label}</option>
               ))}
             </select>
           </div>
 
-          {/* ПОЛЕ 3: Текущий отдел */}
           <div className="form-group">
             <label>Ваш текущий отдел *</label>
             <select
@@ -239,7 +203,6 @@ export default function TransferForm() {
             </select>
           </div>
 
-          {/* ПОЛЕ 4: Желаемый отдел */}
           <div className="form-group">
             <label>Желаемый отдел *</label>
             <select
@@ -249,7 +212,6 @@ export default function TransferForm() {
                 setFormData({
                   ...formData, 
                   targetDepartment: e.target.value,
-                  // Сбрасываем доп. поля при смене отдела
                   cidWhatIs: '',
                   cidExperience: '',
                   cidExamples: '',
@@ -264,7 +226,7 @@ export default function TransferForm() {
             >
               <option value="">-- Выберите желаемый отдел --</option>
               {DEPARTMENTS
-                .filter(dept => dept.id !== 'trainee') // Нельзя выбрать Trainee
+                .filter(dept => dept.id !== 'trainee')
                 .map(dept => (
                   <option key={dept.id} value={dept.id}>
                     {dept.emoji} {dept.name}
@@ -273,7 +235,6 @@ export default function TransferForm() {
             </select>
           </div>
 
-          {/* ОШИБКА: одинаковый отдел */}
           {isSameDepartment && (
             <div className="warning-box error">
               <span className="warning-icon">❌</span>
@@ -281,7 +242,6 @@ export default function TransferForm() {
             </div>
           )}
 
-          {/* ОШИБКА: FA требует 5+ ранг */}
           {targetDept === 'fa' && !isFaRankValid && (
             <div className="warning-box error">
               <span className="warning-icon">❌</span>
@@ -289,7 +249,6 @@ export default function TransferForm() {
             </div>
           )}
 
-          {/* ПОЛЕ 5: Причина перевода */}
           <div className="form-group">
             <label>Причина перевода *</label>
             <textarea 
@@ -301,7 +260,6 @@ export default function TransferForm() {
             />
           </div>
 
-          {/* ===== ДОП. ПОЛЯ ДЛЯ CID ===== */}
           {showCidFields && (
             <div className="extra-fields cid-fields">
               <h3>📋 Дополнительные вопросы для CID</h3>
@@ -327,9 +285,7 @@ export default function TransferForm() {
                 >
                   <option value="">-- Выберите вариант --</option>
                   {EXPERIENCE_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
+                    <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
               </div>
@@ -366,9 +322,7 @@ export default function TransferForm() {
                 >
                   <option value="">-- Оцените знания --</option>
                   {RATING_OPTIONS.map(num => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
+                    <option key={num} value={num}>{num}</option>
                   ))}
                 </select>
               </div>
@@ -383,16 +337,13 @@ export default function TransferForm() {
                 >
                   <option value="">-- Оцените знания --</option>
                   {RATING_OPTIONS.map(num => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
+                    <option key={num} value={num}>{num}</option>
                   ))}
                 </select>
               </div>
             </div>
           )}
 
-          {/* ===== ДОП. ПОЛЯ ДЛЯ FA ===== */}
           {showFaFields && (
             <div className="extra-fields fa-fields">
               <h3>📋 Дополнительные вопросы для FA</h3>
@@ -421,7 +372,6 @@ export default function TransferForm() {
             </div>
           )}
 
-          {/* ПОСЛЕДНЕЕ ПОЛЕ: Discord ID */}
           <div className="form-group">
             <label>Discord ID</label>
             <input 
@@ -432,11 +382,7 @@ export default function TransferForm() {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={submitting || !isFormValid()}
-          >
+          <button type="submit" className="submit-btn" disabled={submitting || !isFormValid()}>
             {submitting ? '⏳ Отправка...' : '📤 Отправить заявку'}
           </button>
         </form>
@@ -571,7 +517,6 @@ export default function TransferForm() {
           color: #8b8ba7;
         }
 
-        /* ===== ПРЕДУПРЕЖДЕНИЯ ===== */
         .warning-box {
           border-radius: 10px;
           padding: 14px 18px;
@@ -594,7 +539,6 @@ export default function TransferForm() {
           line-height: 1.4;
         }
 
-        /* ===== ДОП. ПОЛЯ ===== */
         .extra-fields {
           border-radius: 12px;
           padding: 20px;

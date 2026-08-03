@@ -98,7 +98,8 @@ const TRANSFER_WEBHOOKS = {
 // ===== ВЕБХУКИ ДЛЯ РАЗНЫХ ТИПОВ ЗАЯВОК =====
 const webhooks = {
   promotion: process.env.WEBHOOK_PROMOTION,
-  highrank: process.env.WEBHOOK_HIGH_RANK_REPORT
+  highrank: process.env.WEBHOOK_HIGH_RANK_REPORT,
+  resignation: process.env.WEBHOOK_RESIGNATION
 };
 
 export default async function handler(req, res) {
@@ -121,8 +122,6 @@ export default async function handler(req, res) {
   }
 
   // ===== РАЗБИРАЕМ ЗАПРОС =====
-  // Для отчётов используем department
-  // Для переводов используем targetDepartment
   const { type, userId, username, department, targetDepartment, ...formData } = req.body;
   
   let webhookUrl;
@@ -130,7 +129,6 @@ export default async function handler(req, res) {
 
   // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   if (type === 'report') {
-    // Для отчётов — по отделам (включая IB и Trainee)
     const dept = DEPARTMENTS[department];
     if (!dept) {
       return res.status(400).json({ 
@@ -150,7 +148,6 @@ export default async function handler(req, res) {
       roleMentions += `<@&${dept.roleId2}>`;
     }
   } else if (type === 'transfer') {
-    // Для переводов — по отделам (без IB и Trainee)
     const deptKey = targetDepartment;
     if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
       return res.status(400).json({ 
@@ -171,7 +168,6 @@ export default async function handler(req, res) {
       roleMentions += `<@&${deptInfo.roleId2}>`;
     }
   } else if (type === 'highrank') {
-    // Для отчёта на повышение (Хай Ранги) — отдельный вебхук
     webhookUrl = webhooks.highrank;
     if (!webhookUrl) {
       return res.status(500).json({ 
@@ -179,8 +175,15 @@ export default async function handler(req, res) {
       });
     }
     roleMentions = '<@&1289343511354671125>';
+  } else if (type === 'resignation') {
+    webhookUrl = webhooks.resignation;
+    if (!webhookUrl) {
+      return res.status(500).json({ 
+        error: 'Вебхук для заявлений на увольнение не настроен на сервере' 
+      });
+    }
+    roleMentions = '<@&1274110499356934211>';
   } else {
-    // Для повышения — общий вебхук с пингом роли
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
@@ -203,7 +206,6 @@ export default async function handler(req, res) {
     timestamp: new Date().toISOString()
   };
 
-  // ===== ФОРМИРУЕМ СООБЩЕНИЕ =====
   const content = roleMentions.trim() || undefined;
 
   try {
@@ -255,6 +257,9 @@ function getFormTitle(type, department, targetDepartment) {
   if (type === 'highrank') {
     return '📈 Отчёт на повышение (Хай Ранги)';
   }
+  if (type === 'resignation') {
+    return '📋 Заявление на увольнение';
+  }
   const titles = {
     promotion: '📈 Запрос на повышение'
   };
@@ -266,7 +271,8 @@ function getFormColor(type) {
     promotion: 0x4CAF50,
     transfer: 0x2196F3,
     report: 0xFF9800,
-    highrank: 0xFF69B4
+    highrank: 0xFF69B4,
+    resignation: 0xDC3545
   };
   return colors[type] || 0x5865F2;
 }
@@ -306,6 +312,14 @@ function buildFields(type, department, targetDepartment, data, userId, username)
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '📊 Диапазон рангов', value: data.rankRange || 'Не указано', inline: false },
       { name: '🔗 Ссылка на работу', value: data.workLink || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'resignation') {
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '📸 Скриншот планшета', value: data.screenshot || 'Не указано', inline: false },
       ...baseFields
     ];
   }

@@ -1,19 +1,19 @@
 // pages/api/auth/login.js
 export default (req, res) => {
-  // 1. Получаем базовый URL. 
-  // process.env.VERCEL_URL — это автоматическая переменная от Vercel (выглядит как https://app-name.vercel.app)
-  // Если её нет (локально), используем localhost.
+  // 1. Получаем базовый URL.
+  // process.env.VERCEL_URL — это автоматическая переменная от Vercel.
+  // Она выглядит как https://majestic-fib-forms.vercel.app
   const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
   
-  // 2. Формируем redirect_uri. 
-  // Важно: мы используем переменную baseUrl, а не строку "\${baseUrl}"
+  // 2. Формируем redirect_uri.
+  // Важно: используем переменную baseUrl, а не строку "\${baseUrl}"
   const redirectUri = `\${baseUrl}/api/auth/callback`;
   
   const clientId = process.env.DISCORD_CLIENT_ID;
   const scope = 'identify';
   const responseType = 'code';
 
-  // Проверка: если Client ID нет, значит, ты забыл добавить его в Vercel как Secret
+  // Проверка: если Client ID нет, значит, переменная не настроена
   if (!clientId) {
     console.error('ОШИБКА: DISCORD_CLIENT_ID не найден в переменных окружения!');
     return res.status(500).json({ error: 'Настрой переменные окружения в Vercel!' });

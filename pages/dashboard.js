@@ -76,6 +76,13 @@ export default function Dashboard() {
           <h3>Отчёт на повышение (Хай Ранги)</h3>
           <p>Повышение для старшего состава</p>
         </div>
+
+        {/* Кнопка 5: Увольнение */}
+        <div className="card" onClick={() => router.push('/forms/resignation')}>
+          <div className="card-icon">🚪</div>
+          <h3>Заявление на увольнение</h3>
+          <p>Подать заявление на увольнение из FIB</p>
+        </div>
       </div>
 
       <style jsx>{`

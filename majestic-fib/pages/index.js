@@ -1,3 +1,4 @@
+// pages/index.jsx
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -6,43 +7,19 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-
-    if (code) {
-      handleCallback(code);
-      return;
-    }
-
+    // 1. Сначала пробуем взять пользователя из localStorage (если он уже авторизован)
     const stored = localStorage.getItem('rp_user');
     if (stored) {
       setUser(JSON.parse(stored));
     }
+    
+    // 2. ВАЖНО: Мы НЕ обрабатываем здесь параметр ?code из URL.
+    // Этим должен заниматься файл pages/api/auth/callback.js.
+    // Если ты оставишь обработку кода здесь, то при редиректе с Discord 
+    // может возникнуть конфликт состояний.
+    
     setLoading(false);
   }, []);
-
-  const handleCallback = async (code) => {
-    try {
-      const res = await fetch(`/api/auth/callback?code=${code}`);
-      const data = await res.json();
-
-      if (data.id) {
-        localStorage.setItem('rp_user', JSON.stringify({
-          id: data.id,
-          username: data.username,
-          avatar: data.avatar
-        }));
-        setUser(data);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
-        console.error('Ошибка авторизации:', data.error);
-      }
-    } catch (error) {
-      console.error('Ошибка сети:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const logout = () => {
     localStorage.removeItem('rp_user');
@@ -59,6 +36,8 @@ export default function Index() {
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h1>Majestic RP — Заявки</h1>
         <p>Выберите тип заявки после авторизации через Discord.</p>
+        
+        {/* Ссылка ведет на наш API, который сам соберет правильный URL */}
         <a
           href="/api/auth/login"
           style={{
@@ -68,7 +47,8 @@ export default function Index() {
             color: '#fff',
             textDecoration: 'none',
             borderRadius: '8px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            marginTop: '20px'
           }}
         >
           Войти через Discord
@@ -97,23 +77,4 @@ export default function Index() {
         </Link>
         <Link href="/forms/other" style={cardStyle}>
           <h3>💬 Прочие запросы</h3>
-          <p>Иные обращения к администрации.</p>
-        </Link>
-      </div>
-
-      <button onClick={logout} style={{ marginTop: '40px', padding: '10px 20px', cursor: 'pointer' }}>
-        Выйти
-      </button>
-    </div>
-  );
-}
-
-const cardStyle = {
-  display: 'block',
-  padding: '24px',
-  border: '1px solid #e0e0e0',
-  borderRadius: '12px',
-  textDecoration: 'none',
-  color: '#333',
-  transition: 'box-shadow 0.2s',
-};
+          <p>Иные обращения к администрации.

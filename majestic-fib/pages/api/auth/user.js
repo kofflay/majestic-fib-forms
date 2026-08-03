@@ -1,17 +1,11 @@
-import { NextResponse } from "next/server"; // В Pages Router для API лучше использовать обычный res/req, но NextResponse тоже работает в новых версиях. Для надежности используем стандартный подход Pages Router.
-import { getSession } from "next-auth/react"; // Для серверного компонента в pages/api лучше getSession
-// НО! getSession на сервере в pages/api требует передачи req/res. 
-// Самый надежный способ в pages/api для получения токена - читать куки вручную или использовать getServerSession из next-auth
-
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]"; // <-- ИСПРАВЛЕННЫЙ ПУТЬ!
+import { authOptions } from "@/pages/api/auth/[...nextauth]"; // Путь должен вести в pages, а не app
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Получаем сессию
   const session = await getServerSession(req, res, authOptions);
 
   if (!session || !session.accessToken) {

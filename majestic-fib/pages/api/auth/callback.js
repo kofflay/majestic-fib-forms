@@ -1,4 +1,4 @@
-// pages/api/auth/callback.js
+// pages/api/auth/callback.js//
 export default async (req, res) => {
   const { code } = req.query;
   const clientId = process.env.DISCORD_CLIENT_ID;

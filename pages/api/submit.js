@@ -161,11 +161,13 @@ export default async function handler(req, res) {
       roleMentions += `<@&${deptInfo.roleId2}>`;
     }
   } else {
-    // Для повышения — общий вебхук (без пинга)
+    // Для повышения — общий вебхук с пингом роли
     webhookUrl = webhooks[type];
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
     }
+    // Пинг роли для повышений
+    roleMentions = '<@&1274110499356934211>';
   }
 
   // ===== ФОРМИРУЕМ EMBED =====
@@ -270,11 +272,10 @@ function buildFields(type, department, data, userId, username) {
 
   if (type === 'promotion') {
     return [
-      ...baseFields,
-      { name: '📛 Текущая должность', value: data.currentRank || 'Не указано', inline: false },
-      { name: '⭐ Запрашиваемая должность', value: data.requestedRank || 'Не указано', inline: false },
-      { name: '📝 Причина', value: data.reason || 'Не указано', inline: false },
-      { name: '💼 Опыт работы', value: data.experience || 'Не указано', inline: false }
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '📊 Диапазон рангов', value: data.rankRange || 'Не указано', inline: false },
+      { name: '🔗 Ссылка на отчет', value: data.reportLink || 'Не указано', inline: false },
+      ...baseFields
     ];
   }
 

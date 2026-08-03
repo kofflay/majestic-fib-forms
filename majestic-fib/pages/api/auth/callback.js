@@ -12,7 +12,6 @@ export default async (req, res) => {
 
   // ЖЁСТКО заданный URL. Он должен ТОЧНО совпадать с тем, что в Discord Developer Portal.
   const redirectUri = 'https://majestic-fib-forms.vercel.app/api/auth/callback';
-  const encodedRedirectUri = encodeURIComponent(redirectUri);
 
   try {
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -25,7 +24,7 @@ export default async (req, res) => {
         client_secret: clientSecret,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: encodedRedirectUri,
+        redirect_uri: redirectUri, // ВАЖНО: передаём как есть, без encodeURIComponent
       }),
     });
 

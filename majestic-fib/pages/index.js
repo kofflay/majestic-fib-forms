@@ -15,9 +15,9 @@ export default function FibForm() {
   const [formData, setFormData] = useState({ nameAndStatic: '', rankChange: '1-2 ранг', evidenceLinks: '' });
 
   // Логика авторизации: полностью прямая, простая текстовая ссылка без переменных
-  const handleLogin = () => {
-    window.location.href = "https://discord.com/oauth2/authorize?client_id=1533765326213222491&response_type=code&redirect_uri=https%3A%2F%2Fmajestic-fib-forms.vercel.app%2Fapi%2Fauth&scope=identify";
-  };
+const handleLogin = () => {
+  window.location.href = "https://discord.com";
+};
 
   // Ловим данные пользователя, когда он вернулся от Дискорда
   useEffect(() => {

@@ -1,61 +1,83 @@
 import { verifyToken } from '../../lib/discord';
 
-// ===== СПИСОК ВСЕХ ОТДЕЛОВ ДЛЯ ОТЧЁТОВ (ВКЛЮЧАЯ IB) =====
+// ===== СПИСОК ВСЕХ ОТДЕЛОВ С ВЕБХУКАМИ И РОЛЯМИ =====
 const DEPARTMENTS = {
   'ib': {
     name: 'IB (Intelligence Branch)',
     webhook: process.env.WEBHOOK_REPORT_IB,
-    emoji: '🕵️'
+    emoji: '🕵️',
+    roleId: '1398200840900055071',
+    roleId2: '1520504887497064639'
   },
   'cid': {
     name: 'CID (Criminal Investigation Department)',
     webhook: process.env.WEBHOOK_REPORT_CID,
-    emoji: '🔍'
+    emoji: '🔍',
+    roleId: '1398200760843374652',
+    roleId2: '1520680049655676948'
   },
   'fa': {
     name: 'FA (Free Agent)',
     webhook: process.env.WEBHOOK_REPORT_FA,
-    emoji: '🆓'
+    emoji: '🆓',
+    roleId: '1398200891353468928',
+    roleId2: '1520680052176715876'
   },
   'hrt': {
     name: 'HRT (Hostage Rescue Team)',
     webhook: process.env.WEBHOOK_REPORT_HRT,
-    emoji: '🛡️'
+    emoji: '🛡️',
+    roleId: '1398201557635567636',
+    roleId2: '1520680047038435358'
   },
   'atf': {
     name: 'ATF (Anti Terrorism Force)',
     webhook: process.env.WEBHOOK_REPORT_ATF,
-    emoji: '💥'
+    emoji: '💥',
+    roleId: '1520680054731051159',
+    roleId2: '1398201048598057041'
   },
   'af': {
     name: 'AF (Air Force)',
     webhook: process.env.WEBHOOK_REPORT_AF,
-    emoji: '✈️'
+    emoji: '✈️',
+    roleId: '1398200952602755103',
+    roleId2: '1532529633088635041'
   },
   'ocu': {
     name: 'OCU (Organized Crime Unit)',
     webhook: process.env.WEBHOOK_REPORT_OCU,
-    emoji: '⚖️'
+    emoji: '⚖️',
+    roleId: '1520680060808331294',
+    roleId2: '1418771091291115631'
   },
   'dea': {
     name: 'DEA (Drug Enforcement Administration)',
     webhook: process.env.WEBHOOK_REPORT_DEA,
-    emoji: '💊'
+    emoji: '💊',
+    roleId: '1398201115379761283',
+    roleId2: '1274110499356934209'
   },
   'fna': {
     name: 'FNA (Federal National Academy)',
     webhook: process.env.WEBHOOK_REPORT_FNA,
-    emoji: '📚'
+    emoji: '📚',
+    roleId: '1520680066445742232',
+    roleId2: '1385530645186613311'
   },
   'nsb': {
     name: 'NSB (National Security Branch)',
     webhook: process.env.WEBHOOK_REPORT_NSB,
-    emoji: '🏛️'
+    emoji: '🏛️',
+    roleId: '1520680069415174275',
+    roleId2: '1398201167154122752'
   },
   'trainee': {
     name: 'Trainee (Стажёр)',
     webhook: process.env.WEBHOOK_REPORT_TRAINEE,
-    emoji: '📖'
+    emoji: '📖',
+    roleId: '1385530645186613311',
+    roleId2: '1520680066445742232'
   }
 };
 
@@ -92,8 +114,9 @@ export default async function handler(req, res) {
   const { type, userId, username, department, ...formData } = req.body;
   
   let webhookUrl;
+  let roleMentions = '';
 
-  // ===== ВЫБИРАЕМ ВЕБХУК =====
+  // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   if (type === 'report') {
     // Для отчётов — по отделам (включая IB и Trainee)
     const dept = DEPARTMENTS[department];
@@ -107,6 +130,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ 
         error: `Вебхук для отдела "${dept.name}" не настроен на сервере` 
       });
+    }
+    // Добавляем пинг двух ролей для отдела
+    if (dept.roleId) {
+      roleMentions += `<@&${dept.roleId}> `;
+    }
+    if (dept.roleId2) {
+      roleMentions += `<@&${dept.roleId2}>`;
     }
   } else if (type === 'transfer') {
     // Для переводов — по отделам (без IB и Trainee)
@@ -122,8 +152,16 @@ export default async function handler(req, res) {
         error: `Вебхук для перевода в отдел "${department}" не настроен на сервере` 
       });
     }
+    // Добавляем пинг двух ролей для отдела
+    const deptInfo = DEPARTMENTS[department];
+    if (deptInfo && deptInfo.roleId) {
+      roleMentions += `<@&${deptInfo.roleId}> `;
+    }
+    if (deptInfo && deptInfo.roleId2) {
+      roleMentions += `<@&${deptInfo.roleId2}>`;
+    }
   } else {
-    // Для повышения — общий вебхук
+    // Для повышения — общий вебхук (без пинга)
     webhookUrl = webhooks[type];
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
@@ -145,11 +183,15 @@ export default async function handler(req, res) {
     timestamp: new Date().toISOString()
   };
 
+  // ===== ФОРМИРУЕМ СООБЩЕНИЕ =====
+  const content = roleMentions.trim() || undefined;
+
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        content: content,
         embeds: [embed],
         username: 'Majestic FIB Forms',
         avatar_url: 'https://i.imgur.com/AfFp7pu.png'
@@ -176,7 +218,6 @@ function getFormTitle(type, department) {
     return `📋 Отчёт о повышении • ${dept ? dept.emoji + ' ' + dept.name : 'Отдел'}`;
   }
   if (type === 'transfer') {
-    // Для переводов — показываем название отдела
     const deptNames = {
       'cid': 'CID',
       'fa': 'FA',

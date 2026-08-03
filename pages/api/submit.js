@@ -1,6 +1,6 @@
 import { verifyToken } from '../../lib/discord';
 
-// ===== СПИСОК ВСЕХ ОТДЕЛОВ =====
+// ===== СПИСОК ВСЕХ ОТДЕЛОВ ДЛЯ ОТЧЁТОВ (ВКЛЮЧАЯ IB) =====
 const DEPARTMENTS = {
   'ib': {
     name: 'IB (Intelligence Branch)',
@@ -59,10 +59,22 @@ const DEPARTMENTS = {
   }
 };
 
-// Вебхуки для других типов заявок
+// ===== ВЕБХУКИ ДЛЯ ПЕРЕВОДОВ (ПО ОТДЕЛАМ, БЕЗ IB И TRAINEE) =====
+const TRANSFER_WEBHOOKS = {
+  'cid': process.env.WEBHOOK_TRANSFER_CID,
+  'fa': process.env.WEBHOOK_TRANSFER_FA,
+  'hrt': process.env.WEBHOOK_TRANSFER_HRT,
+  'atf': process.env.WEBHOOK_TRANSFER_ATF,
+  'af': process.env.WEBHOOK_TRANSFER_AF,
+  'ocu': process.env.WEBHOOK_TRANSFER_OCU,
+  'dea': process.env.WEBHOOK_TRANSFER_DEA,
+  'fna': process.env.WEBHOOK_TRANSFER_FNA,
+  'nsb': process.env.WEBHOOK_TRANSFER_NSB
+};
+
+// Вебхук для повышения (общий)
 const webhooks = {
-  promotion: process.env.WEBHOOK_PROMOTION,
-  transfer: process.env.WEBHOOK_TRANSFER
+  promotion: process.env.WEBHOOK_PROMOTION
 };
 
 export default async function handler(req, res) {
@@ -83,6 +95,7 @@ export default async function handler(req, res) {
 
   // ===== ВЫБИРАЕМ ВЕБХУК =====
   if (type === 'report') {
+    // Для отчётов — по отделам (включая IB и Trainee)
     const dept = DEPARTMENTS[department];
     if (!dept) {
       return res.status(400).json({ 
@@ -95,7 +108,22 @@ export default async function handler(req, res) {
         error: `Вебхук для отдела "${dept.name}" не настроен на сервере` 
       });
     }
+  } else if (type === 'transfer') {
+    // Для переводов — по отделам (без IB и Trainee)
+    const deptKey = department;
+    if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
+      return res.status(400).json({ 
+        error: 'Некорректный отдел для перевода' 
+      });
+    }
+    webhookUrl = TRANSFER_WEBHOOKS[deptKey];
+    if (!webhookUrl) {
+      return res.status(500).json({ 
+        error: `Вебхук для перевода в отдел "${department}" не настроен на сервере` 
+      });
+    }
   } else {
+    // Для повышения — общий вебхук
     webhookUrl = webhooks[type];
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
@@ -147,9 +175,24 @@ function getFormTitle(type, department) {
     const dept = DEPARTMENTS[department];
     return `📋 Отчёт о повышении • ${dept ? dept.emoji + ' ' + dept.name : 'Отдел'}`;
   }
+  if (type === 'transfer') {
+    // Для переводов — показываем название отдела
+    const deptNames = {
+      'cid': 'CID',
+      'fa': 'FA',
+      'hrt': 'HRT',
+      'atf': 'ATF',
+      'af': 'AF',
+      'ocu': 'OCU',
+      'dea': 'DEA',
+      'fna': 'FNA',
+      'nsb': 'NSB'
+    };
+    const deptName = deptNames[department] || 'Отдел';
+    return `🔄 Запрос на перевод в ${deptName}`;
+  }
   const titles = {
-    promotion: '📈 Запрос на повышение',
-    transfer: '🔄 Запрос на перевод'
+    promotion: '📈 Запрос на повышение'
   };
   return titles[type] || 'Новая заявка';
 }
@@ -169,21 +212,20 @@ function buildFields(type, department, data, userId, username) {
     { name: '🆔 Discord ID', value: userId, inline: true }
   ];
 
-if (type === 'report') {
-  const dept = DEPARTMENTS[department];
-  const instructorText = data.isInstructor === 'yes' ? '✅ Да' : '❌ Нет';
-  
-  return [
-    { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
-    { name: '🏢 Отдел', value: dept ? dept.emoji + ' ' + dept.name : 'Не указан', inline: false },
-    { name: '📌 Текущий ранг', value: data.currentRank || 'Не указан', inline: false },
-    { name: '🎯 Целевой ранг', value: data.targetRank || 'Не указан', inline: false },
-    // Добавляем поле с инструктором (если есть)
-    ...(data.isInstructor ? [{ name: '👨‍🏫 Назначен на инструктора', value: instructorText, inline: false }] : []),
-    { name: '🔗 Ссылки на работу', value: data.workLinks || 'Не указаны', inline: false },
-    ...baseFields
-  ];
-}
+  if (type === 'report') {
+    const dept = DEPARTMENTS[department];
+    const instructorText = data.isInstructor === 'yes' ? '✅ Да' : '❌ Нет';
+    
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '🏢 Отдел', value: dept ? dept.emoji + ' ' + dept.name : 'Не указан', inline: false },
+      { name: '📌 Текущий ранг', value: data.currentRank || 'Не указан', inline: false },
+      { name: '🎯 Целевой ранг', value: data.targetRank || 'Не указан', inline: false },
+      ...(data.isInstructor ? [{ name: '👨‍🏫 Назначен на инструктора', value: instructorText, inline: false }] : []),
+      { name: '🔗 Ссылки на работу', value: data.workLinks || 'Не указаны', inline: false },
+      ...baseFields
+    ];
+  }
 
   if (type === 'promotion') {
     return [
@@ -196,12 +238,37 @@ if (type === 'report') {
   }
 
   if (type === 'transfer') {
-    return [
-      ...baseFields,
+    const fields = [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '📌 Ваш ранг', value: data.rank || 'Не указан', inline: false },
       { name: '🏢 Текущий отдел', value: data.currentDepartment || 'Не указано', inline: false },
       { name: '🎯 Желаемый отдел', value: data.targetDepartment || 'Не указано', inline: false },
       { name: '📝 Причина перевода', value: data.reason || 'Не указано', inline: false }
     ];
+
+    // Если желаемый отдел — CID, добавляем доп. поля
+    if (data.targetDepartment === 'cid') {
+      fields.push(
+        { name: '📋 Чем занимается CID/DB?', value: data.cidWhatIs || 'Не указано', inline: false },
+        { name: '📋 Опыт работы в CID/DB?', value: data.cidExperience || 'Не указано', inline: false },
+        { name: '📋 Примеры работ', value: data.cidExamples || 'Не указано', inline: false },
+        { name: '📋 Серверы с CID/DB', value: data.cidServers || 'Не указано', inline: false },
+        { name: '📋 Знания по работе CID (1-10)', value: data.cidKnowledge || 'Не указано', inline: false },
+        { name: '📋 Знания по законке (1-10)', value: data.cidLawKnowledge || 'Не указано', inline: false }
+      );
+    }
+
+    // Если желаемый отдел — FA, добавляем доп. поля
+    if (data.targetDepartment === 'fa') {
+      fields.push(
+        { name: '📋 Знание правил ПОИП', value: data.faRules || 'Не указано', inline: false },
+        { name: '📋 Был ли в FA раньше', value: data.faPrevious || 'Не указано', inline: false }
+      );
+    }
+
+    // Добавляем базовые поля в конец
+    fields.push(...baseFields);
+    return fields;
   }
 
   return [

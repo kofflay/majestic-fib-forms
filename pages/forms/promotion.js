@@ -1,16 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
+// ===== ВАРИАНТЫ РАНГОВ (1-13) =====
+const RANK_OPTIONS = [
+  '1-2 ранг',
+  '2-3 ранг',
+  '3-4 ранг',
+  '4-5 ранг',
+  '5-6 ранг',
+  '6-7 ранг',
+  '7-8 ранг',
+  '8-9 ранг',
+  '9-10 ранг',
+  '10-11 ранг',
+  '11-12 ранг',
+  '12-13 ранг'
+];
+
 export default function PromotionForm() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    currentRank: '',
-    requestedRank: '',
-    reason: '',
-    experience: ''
+    fullName: '',
+    rankRange: '',
+    reportLink: ''
   });
 
   useEffect(() => {
@@ -38,12 +53,14 @@ export default function PromotionForm() {
           type: 'promotion',
           userId: user.id,
           username: user.username,
-          ...formData
+          fullName: formData.fullName,
+          rankRange: formData.rankRange,
+          reportLink: formData.reportLink
         })
       });
 
       if (res.ok) {
-        alert('✅ Заявка успешно отправлена!');
+        alert('✅ Заявка на повышение успешно отправлена!');
         router.push('/dashboard');
       } else {
         const error = await res.json();
@@ -75,6 +92,49 @@ export default function PromotionForm() {
         <h1>📈 Запрос на повышение</h1>
         
         <form onSubmit={handleSubmit}>
+          {/* ПОЛЕ 1: Имя Фамилия + Статик */}
+          <div className="form-group">
+            <label>Имя Фамилия + Статик *</label>
+            <input 
+              type="text" 
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+              placeholder="Например: Sanya Suspect 270726"
+            />
+          </div>
+
+          {/* ПОЛЕ 2: С какого на какой ранг */}
+          <div className="form-group">
+            <label>С какого на какой ранг вы повышаетесь *</label>
+            <select
+              required
+              value={formData.rankRange}
+              onChange={(e) => setFormData({...formData, rankRange: e.target.value})}
+              className="select-input"
+            >
+              <option value="">-- Выберите диапазон рангов --</option>
+              {RANK_OPTIONS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ПОЛЕ 3: Ссылка на одобренный отчет */}
+          <div className="form-group">
+            <label>Ссылка на одобренный отчет о повышении *</label>
+            <textarea 
+              required
+              value={formData.reportLink}
+              onChange={(e) => setFormData({...formData, reportLink: e.target.value})}
+              placeholder="Вставьте ссылку на ваш одобренный отчет о повышении..."
+              rows="4"
+            />
+          </div>
+
+          {/* ПОЛЕ 4: Discord ID (внизу) */}
           <div className="form-group">
             <label>Discord ID</label>
             <input 
@@ -85,51 +145,11 @@ export default function PromotionForm() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Текущая должность *</label>
-            <input 
-              type="text" 
-              required
-              value={formData.currentRank}
-              onChange={(e) => setFormData({...formData, currentRank: e.target.value})}
-              placeholder="Например: Старший агент FIB"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Запрашиваемая должность *</label>
-            <input 
-              type="text" 
-              required
-              value={formData.requestedRank}
-              onChange={(e) => setFormData({...formData, requestedRank: e.target.value})}
-              placeholder="Например: Специальный агент FIB"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Причина повышения *</label>
-            <textarea 
-              required
-              value={formData.reason}
-              onChange={(e) => setFormData({...formData, reason: e.target.value})}
-              placeholder="Опишите почему вы заслуживаете повышения..."
-              rows="4"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Опыт работы *</label>
-            <textarea 
-              required
-              value={formData.experience}
-              onChange={(e) => setFormData({...formData, experience: e.target.value})}
-              placeholder="Опишите ваш опыт работы в FIB..."
-              rows="4"
-            />
-          </div>
-
-          <button type="submit" className="submit-btn" disabled={submitting}>
+          <button 
+            type="submit" 
+            className="submit-btn" 
+            disabled={submitting}
+          >
             {submitting ? '⏳ Отправка...' : '📤 Отправить заявку'}
           </button>
         </form>
@@ -179,7 +199,7 @@ export default function PromotionForm() {
           font-size: 14px;
           font-weight: 500;
         }
-        input, textarea {
+        input, textarea, .select-input {
           width: 100%;
           padding: 12px 15px;
           background: rgba(255, 255, 255, 0.05);
@@ -188,8 +208,17 @@ export default function PromotionForm() {
           color: white;
           font-size: 15px;
           transition: border-color 0.2s;
+          box-sizing: border-box;
         }
-        input:focus, textarea:focus {
+        .select-input {
+          appearance: none;
+          cursor: pointer;
+        }
+        .select-input option {
+          background: #1a1a3e;
+          color: white;
+        }
+        input:focus, textarea:focus, .select-input:focus {
           outline: none;
           border-color: #5865F2;
           background: rgba(255, 255, 255, 0.08);

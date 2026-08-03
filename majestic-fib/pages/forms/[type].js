@@ -77,3 +77,61 @@ export default function FormPage() {
       fields = (
         <>
           <label>Основание для повышения:</label>
+          <textarea name="promotion_reason" rows="4" required style={textareaStyle}></textarea>
+
+          <label>Доказательства (ссылка):</label>
+          <input type="url" name="evidence" placeholder="https://..." style={inputStyle} />
+        </>
+      );
+      break;
+    case 'report':
+      fields = (
+        <>
+          <label>Описание выполненных задач:</label>
+          <textarea name="report_details" rows="5" required style={textareaStyle}></textarea>
+
+          <label>Ссылки на доказательства:</label>
+          <textarea name="evidence_links" rows="3" style={textareaStyle}></textarea>
+        </>
+      );
+      break;
+    default:
+      fields = (
+        <>
+          <label>Тема обращения:</label>
+          <input name="subject" required style={inputStyle} />
+
+          <label>Текст заявки:</label>
+          <textarea name="text" rows="6" required style={textareaStyle}></textarea>
+        </>
+      );
+  }
+
+  return (
+    <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
+      <h2>Форма: {getTitle(type)}</h2>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {fields}
+        <button type="submit" disabled={loading} style={buttonStyle}>
+          {loading ? 'Отправка…' : 'Отправить заявку'}
+        </button>
+      </form>
+      {status && <p style={{ marginTop: '20px', padding: '12px', background: '#ffebee', borderRadius: '8px' }}>{status}</p>}
+      <button onClick={() => router.push('/')} style={{ marginTop: '10px', color: '#5865F2', background: 'none', border: 'none', cursor: 'pointer' }}>← Назад к меню</button>
+    </div>
+  );
+}
+
+function getTitle(type) {
+  switch (type) {
+    case 'transfer': return 'Перевод в отдел';
+    case 'promotion': return 'Запрос на повышение';
+    case 'report': return 'Отчёт о повышении';
+    default: return 'Прочие запросы';
+  }
+}
+
+const selectStyle = { padding: '8px', borderRadius: '6px', border: '1px solid #ccc', width: '100%' };
+const textareaStyle = { padding: '8px', borderRadius: '6px', border: '1px solid #ccc', width: '100%' };
+const inputStyle = { padding: '8px', borderRadius: '6px', border: '1px solid #ccc', width: '100%' };
+const buttonStyle = { padding: '12px 24px', background: '#5865F2', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };

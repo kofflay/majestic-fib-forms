@@ -179,4 +179,195 @@ export default function ReportForm() {
             </select>
           </div>
 
-         
+          {showInstructorField && (
+            <div className="form-group instructor-field">
+              <label>Назначены ли вы на инструктора? *</label>
+              <select
+                required
+                value={formData.isInstructor}
+                onChange={(e) => setFormData({...formData, isInstructor: e.target.value})}
+                className="select-input"
+              >
+                <option value="">-- Выберите ответ --</option>
+                <option value="yes">✅ Да</option>
+                <option value="no">❌ Нет</option>
+              </select>
+              <div className="hint">
+                ⚠️ Для повышения на 9 или 10 ранг необходимо быть назначенным на инструктора
+              </div>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label>Ссылки на проделанную работу *</label>
+            <textarea 
+              required
+              value={formData.workLinks}
+              onChange={(e) => setFormData({...formData, workLinks: e.target.value})}
+              placeholder="Вставьте ссылки на ваши отчёты, посты или другие доказательства работы..."
+              rows="4"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Discord ID</label>
+            <input 
+              type="text" 
+              value={`${user.username} (${user.id})`}
+              disabled 
+              className="disabled-input" 
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="submit-btn" 
+            disabled={submitting || (showInstructorField && formData.isInstructor !== 'yes')}
+          >
+            {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
+          </button>
+        </form>
+      </div>
+
+      <style jsx>{`
+        .form-page {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+          padding: 30px;
+        }
+        .back-btn {
+          background: rgba(255, 255, 255, 0.08);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          padding: 10px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          margin-bottom: 20px;
+          transition: all 0.2s;
+          font-size: 14px;
+        }
+        .back-btn:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+        .form-container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(10px);
+          border-radius: 20px;
+          padding: 40px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        h1 {
+          color: white;
+          margin-bottom: 30px;
+          font-size: 28px;
+        }
+        .form-group {
+          margin-bottom: 20px;
+        }
+        label {
+          display: block;
+          color: #8b8ba7;
+          margin-bottom: 8px;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        input, textarea, .select-input {
+          width: 100%;
+          padding: 12px 15px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 8px;
+          color: white;
+          font-size: 15px;
+          transition: border-color 0.2s;
+          box-sizing: border-box;
+        }
+        .select-input {
+          appearance: none;
+          cursor: pointer;
+        }
+        .select-input option {
+          background: #1a1a3e;
+          color: white;
+        }
+        input:focus, textarea:focus, .select-input:focus {
+          outline: none;
+          border-color: #5865F2;
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .disabled-input {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.03);
+        }
+        textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+        .submit-btn {
+          width: 100%;
+          padding: 14px;
+          background: #5865F2;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 10px;
+        }
+        .submit-btn:hover:not(:disabled) {
+          background: #4752C4;
+          transform: translateY(-1px);
+        }
+        .submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          background: #0a0a1a;
+        }
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid rgba(88, 101, 242, 0.2);
+          border-top-color: #5865F2;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 15px;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .loading-container p {
+          color: #8b8ba7;
+        }
+
+        .instructor-field {
+          background: rgba(255, 152, 0, 0.08);
+          border: 1px solid rgba(255, 152, 0, 0.25);
+          border-radius: 12px;
+          padding: 18px 18px 12px 18px;
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .hint {
+          margin-top: 8px;
+          font-size: 13px;
+          color: #FFB74D;
+        }
+      `}</style>
+    </div>
+  );
+}

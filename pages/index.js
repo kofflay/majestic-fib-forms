@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import getConfig from 'next/config';
 
-const { publicRuntimeConfig } = getConfig();
+// Вшиваем прямо в код
+const DISCORD_CLIENT_ID = '1533765326213222491';
+const DISCORD_REDIRECT_URI = 'https://majestic-fib-forms-beta.vercel.app/api/auth';
 
 export default function Home() {
   const router = useRouter();
@@ -27,8 +28,8 @@ export default function Home() {
 
   const handleDiscordLogin = () => {
     const params = new URLSearchParams({
-      client_id: publicRuntimeConfig.discordClientId,
-      redirect_uri: publicRuntimeConfig.discordRedirectUri,
+      client_id: DISCORD_CLIENT_ID,
+      redirect_uri: DISCORD_REDIRECT_URI,
       response_type: 'code',
       scope: 'identify',
       prompt: 'none'

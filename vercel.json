@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd majestic-fib && next build",
+  "outputDirectory": "majestic-fib/.next",
+  "installCommand": "cd majestic-fib && npm install"
+}

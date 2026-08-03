@@ -34,8 +34,6 @@ export default function ResignationForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'resignation',
-          userId: user.id,
-          username: user.username,
           fullName: formData.fullName,
           screenshot: formData.screenshot
         })
@@ -74,7 +72,6 @@ export default function ResignationForm() {
         <h1>📋 Заявление на увольнение</h1>
         
         <form onSubmit={handleSubmit}>
-          {/* ПОЛЕ 1: Имя Фамилия + Статик */}
           <div className="form-group">
             <label>Имя Фамилия + Статик *</label>
             <input 
@@ -86,7 +83,6 @@ export default function ResignationForm() {
             />
           </div>
 
-          {/* ПОЛЕ 2: Скриншот планшета */}
           <div className="form-group">
             <label>Скриншот планшета *</label>
             <textarea 
@@ -98,7 +94,6 @@ export default function ResignationForm() {
             />
           </div>
 
-          {/* ПОЛЕ 3: Discord ID */}
           <div className="form-group">
             <label>Discord ID</label>
             <input 
@@ -109,11 +104,7 @@ export default function ResignationForm() {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={submitting}
-          >
+          <button type="submit" className="submit-btn" disabled={submitting}>
             {submitting ? '⏳ Отправка...' : '📤 Отправить заявление'}
           </button>
         </form>

@@ -1,4 +1,4 @@
-// pages/index.jsx
+// pages/index.js
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -7,17 +7,10 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Сначала пробуем взять пользователя из localStorage (если он уже авторизован)
     const stored = localStorage.getItem('rp_user');
     if (stored) {
       setUser(JSON.parse(stored));
     }
-    
-    // 2. ВАЖНО: Мы НЕ обрабатываем здесь параметр ?code из URL.
-    // Этим должен заниматься файл pages/api/auth/callback.js.
-    // Если ты оставишь обработку кода здесь, то при редиректе с Discord 
-    // может возникнуть конфликт состояний.
-    
     setLoading(false);
   }, []);
 
@@ -36,8 +29,6 @@ export default function Index() {
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h1>Majestic RP — Заявки</h1>
         <p>Выберите тип заявки после авторизации через Discord.</p>
-        
-        {/* Ссылка ведет на наш API, который сам соберет правильный URL */}
         <a
           href="/api/auth/login"
           style={{
@@ -67,14 +58,45 @@ export default function Index() {
           <h3>⭐ Запрос на повышение</h3>
           <p>Подать заявку на повышение в должности.</p>
         </Link>
+        
         <Link href="/forms/transfer" style={cardStyle}>
           <h3>🔄 Перевод в отдел</h3>
           <p>Запросить перевод между отделами.</p>
         </Link>
+        
         <Link href="/forms/report" style={cardStyle}>
           <h3>📄 Отчёт о повышении</h3>
           <p>Сдать отчёт по результатам повышения.</p>
         </Link>
+        
         <Link href="/forms/other" style={cardStyle}>
           <h3>💬 Прочие запросы</h3>
-          <p>Иные обращения к администрации.
+          <p>Иные обращения к администрации.</p>
+        </Link>
+      </div>
+
+      <button 
+        onClick={logout} 
+        style={{ 
+          marginTop: '40px', 
+          padding: '10px 20px', 
+          cursor: 'pointer', 
+          background: '#eee', 
+          border: '1px solid #ccc' 
+        }}
+      >
+        Выйти
+      </button>
+    </div>
+  );
+}
+
+const cardStyle = {
+  display: 'block',
+  padding: '24px',
+  border: '1px solid #e0e0e0',
+  borderRadius: '12px',
+  textDecoration: 'none',
+  color: '#333',
+  transition: 'box-shadow 0.2s',
+};

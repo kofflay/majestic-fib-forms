@@ -134,10 +134,7 @@ export default async function handler(req, res) {
     const foundWords = findAllBadWords(allText);
     const foundWord = findBadWord(allText);
     
-    // Отправляем уведомление админам
     await sendBanWordAlert(user, username, foundWord || foundWords.join(', '), allText, type, req);
-    
-    // Добавляем пользователя в чёрный список
     addToBlacklist(user.id, username, `Банворд: ${foundWord || foundWords.join(', ')}`);
     
     return res.status(403).json({ 
@@ -336,7 +333,7 @@ function buildFields(type, department, targetDepartment, data, userId, username)
   return [...baseFields, ...Object.entries(data).map(([key, value]) => ({ name: key, value: String(value) || 'Не указано', inline: false }))];
 }
 
-// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ =====
+// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ (БЕЗ @everyone) =====
 async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
   const webhookUrl = process.env.WEBHOOK_BANWORDS || process.env.WEBHOOK_LOGS;
   if (!webhookUrl) return;
@@ -368,7 +365,7 @@ async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        content: '@everyone 🚨 **Обнаружен банворд!**',
+        content: '🚨 **Обнаружен банворд!**',
         embeds: [embed],
         username: 'FIB Модератор',
         avatar_url: 'https://i.imgur.com/AfFp7pu.png'

@@ -175,8 +175,10 @@ export default async function handler(req, res) {
     });
   }
 
-  // ===== РАЗБИРАЕМ ЗАПРОС =====
-  const { type, userId, username, department, targetDepartment, ...formData } = req.body;
+  // ===== БЕЗОПАСНО: БЕРЁМ ДАННЫЕ ИЗ КУКИ, А НЕ ИЗ ЗАПРОСА =====
+  const { type, department, targetDepartment, ...formData } = req.body;
+  const userId = user.id;
+  const username = user.username;
 
   // ===== ПРОВЕРКА БАНВОРДОВ =====
   const allText = Object.values(formData)

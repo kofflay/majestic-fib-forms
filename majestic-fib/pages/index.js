@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 
-// 🛑 ЧЁРНЫЙ СПИСОК DISCORD ID (Сюда через запятую вписывайте вредителей)
+// 🛑 ЧЁРНЫЙ СПИСОК DISCORD ID (Вписывайте вредителей через запятую)
 const BLACKLIST = [
   "857583974104956948", // Нарушитель со скриншота
-  "112233445566778899"  // Сюда пишите новые ID через запятую
+  "112233445566778899"
 ];
 
 const CLIENT_ID = "1533765326213222491";
@@ -15,26 +15,33 @@ export default function FibForm() {
   const [status, setStatus] = useState('');
   const [formData, setFormData] = useState({ nameAndStatic: '', rankChange: '1-2 ранг', evidenceLinks: '' });
 
+  // Логика авторизации без всплывающих окон (в текущей вкладке)
   const handleLogin = () => {
     const protocol = window.location.protocol;
     const host = window.location.host;
     const redirectUri = encodeURIComponent(`${protocol}//${host}/api/auth`);
-    const authUrl = `https://discord.com{CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=identify`;
-    window.open(authUrl, 'Discord Auth', 'width=500,height=700');
+    window.location.href = `https://discord.com{CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=identify`;
   };
 
+  // Ловим данные пользователя, когда он вернулся от Дискорда
   useEffect(() => {
-    const handleAuthMessage = (event) => {
-      if (event.data.type === 'DISCORD_AUTH_SUCCESS') {
-        const loggedInUser = event.data.user;
+    const urlParams = new URLSearchParams(window.location.search);
+    const userParam = urlParams.get('user');
+    
+    if (userParam) {
+      try {
+        const loggedInUser = JSON.parse(decodeURIComponent(userParam));
         setUser(loggedInUser);
+        
         if (BLACKLIST.includes(loggedInUser.id)) {
           setIsBanned(true);
         }
+        // Красиво чистим адресную строку, убирая длинный код юзера
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.error("Ошибка при обработке профиля", e);
       }
-    };
-    window.addEventListener('message', handleAuthMessage);
-    return () => window.removeEventListener('message', handleAuthMessage);
+    }
   }, []);
 
   const sanitizeText = (text) => {
@@ -93,9 +100,7 @@ export default function FibForm() {
         }
 
         const errorText = await response.text();
-        console.error("Discord Error:", errorText);
         setStatus(`❌ Ошибка Дискорда (Код ${response.status}).`);
-
       } catch (err) {
         if (retries > 0) {
           await new Promise(res => setTimeout(res, delay));
@@ -146,7 +151,7 @@ export default function FibForm() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label>Ссылки на док-ва [5 фракционных активностей] <span style={{ color: '#e53e3e' }}>*</span></label>
-            <textarea required rows="5" placeholder="Вставьте ссылки" value={formData.evidenceLinks} onChange={e => setFormData({...formData, evidenceLinks: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e0', resize: 'vertical' }} />
+            <textarea required rows="5" placeholder="Вставьте ссылки на доказательства" value={formData.evidenceLinks} onChange={e => setFormData({...formData, evidenceLinks: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e0', resize: 'vertical' }} />
           </div>
 
           <button type="submit" style={{ backgroundColor: '#2f855a', color: 'white', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>

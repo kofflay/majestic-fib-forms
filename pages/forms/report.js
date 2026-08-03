@@ -16,18 +16,18 @@ const DEPARTMENTS = [
   { id: 'trainee', name: 'Trainee (Стажёр)', emoji: '📖' }
 ];
 
-// ===== СПИСОК РАНГОВ (от младшего к старшему) =====
+// ===== РАНГИ — ТОЛЬКО ЦИФРЫ =====
 const RANKS = [
-  'Trainee',
-  'Junior Agent',
-  'Agent',
-  'Senior Agent',
-  'Special Agent',
-  'Supervisory Special Agent',
-  'Assistant Section Chief',
-  'Section Chief',
-  'Deputy Assistant Director',
-  'Assistant Director'
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+  { value: '5', label: '5' },
+  { value: '6', label: '6' },
+  { value: '7', label: '7' },
+  { value: '8', label: '8' },
+  { value: '9', label: '9' },
+  { value: '10', label: '10' }
 ];
 
 export default function ReportForm() {
@@ -40,8 +40,21 @@ export default function ReportForm() {
     department: '',
     currentRank: '',
     targetRank: '',
+    isInstructor: '',
     workLinks: ''
   });
+
+  // ===== ПРОВЕРКА: нужно ли показывать поле "Назначены ли вы на инструктора?" =====
+  const targetRankNum = parseInt(formData.targetRank);
+  const showInstructorField = (targetRankNum === 9 || targetRankNum === 10) && formData.department !== 'fa';
+
+  // ===== ПРОВЕРКА: можно ли отправлять форму =====
+  const isFormValid = () => {
+    // Если поле с инструктором не показывается — всё ок
+    if (!showInstructorField) return true;
+    // Если показывается — проверяем, что выбран ответ
+    return formData.isInstructor === 'yes';
+  };
 
   useEffect(() => {
     fetch('/api/me')
@@ -58,6 +71,13 @@ export default function ReportForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Дополнительная проверка перед отправкой
+    if (showInstructorField && formData.isInstructor !== 'yes') {
+      alert('⚠️ Для повышения на 9 или 10 ранг необходимо подтвердить назначение на инструктора!');
+      return;
+    }
+
     setSubmitting(true);
     
     try {
@@ -72,6 +92,7 @@ export default function ReportForm() {
           department: formData.department,
           currentRank: formData.currentRank,
           targetRank: formData.targetRank,
+          isInstructor: formData.isInstructor || 'no',
           workLinks: formData.workLinks
         })
       });
@@ -150,8 +171,8 @@ export default function ReportForm() {
             >
               <option value="">-- Выберите текущий ранг --</option>
               {RANKS.map(rank => (
-                <option key={rank} value={rank}>
-                  {rank}
+                <option key={rank.value} value={rank.value}>
+                  {rank.label}
                 </option>
               ))}
             </select>
@@ -163,19 +184,45 @@ export default function ReportForm() {
             <select
               required
               value={formData.targetRank}
-              onChange={(e) => setFormData({...formData, targetRank: e.target.value})}
+              onChange={(e) => {
+                setFormData({
+                  ...formData, 
+                  targetRank: e.target.value,
+                  isInstructor: '' // Сбрасываем ответ при смене ранга
+                });
+              }}
               className="select-input"
             >
               <option value="">-- Выберите целевой ранг --</option>
               {RANKS.map(rank => (
-                <option key={rank} value={rank}>
-                  {rank}
+                <option key={rank.value} value={rank.value}>
+                  {rank.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* ПОЛЕ 5: Ссылки на проделанную работу */}
+          {/* ПОЛЕ 5: Назначены ли вы на инструктора (ПОЯВЛЯЕТСЯ ТОЛЬКО ДЛЯ 9 И 10 РАНГОВ) */}
+          {showInstructorField && (
+            <div className="form-group instructor-field">
+              <label>Назначены ли вы на инструктора? *</label>
+              <select
+                required
+                value={formData.isInstructor}
+                onChange={(e) => setFormData({...formData, isInstructor: e.target.value})}
+                className="select-input"
+              >
+                <option value="">-- Выберите ответ --</option>
+                <option value="yes">✅ Да</option>
+                <option value="no">❌ Нет</option>
+              </select>
+              <div className="hint">
+                ⚠️ Для повышения на 9 или 10 ранг необходимо быть назначенным на инструктора
+              </div>
+            </div>
+          )}
+
+          {/* ПОЛЕ 6: Ссылки на проделанную работу */}
           <div className="form-group">
             <label>Ссылки на проделанную работу *</label>
             <textarea 
@@ -187,7 +234,7 @@ export default function ReportForm() {
             />
           </div>
 
-          {/* ПОЛЕ 6: Discord ID (в самом низу) */}
+          {/* ПОЛЕ 7: Discord ID (в самом низу) */}
           <div className="form-group">
             <label>Discord ID</label>
             <input 
@@ -198,7 +245,11 @@ export default function ReportForm() {
             />
           </div>
 
-          <button type="submit" className="submit-btn" disabled={submitting}>
+          <button 
+            type="submit" 
+            className="submit-btn" 
+            disabled={submitting || (showInstructorField && formData.isInstructor !== 'yes')}
+          >
             {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
           </button>
         </form>
@@ -324,6 +375,24 @@ export default function ReportForm() {
         }
         .loading-container p {
           color: #8b8ba7;
+        }
+
+        /* ===== СТИЛИ ДЛЯ ПОЛЯ ИНСТРУКТОРА ===== */
+        .instructor-field {
+          background: rgba(255, 152, 0, 0.08);
+          border: 1px solid rgba(255, 152, 0, 0.25);
+          border-radius: 12px;
+          padding: 18px 18px 12px 18px;
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .hint {
+          margin-top: 8px;
+          font-size: 13px;
+          color: #FFB74D;
         }
       `}</style>
     </div>

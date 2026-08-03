@@ -1,5 +1,5 @@
 const CLIENT_ID = "1533765326213222491";
-const CLIENT_SECRET = "ZTzzQ3uggsHu2LBiPpYWtbMqW0JKAP_V"; // Убедитесь, что тут ваш новый секрет
+const CLIENT_SECRET = "ZTzzQ3uggsHu2LBiPpYWtbMqW0JKAP_V"; // Убедитесь, что этот секрет совпадает с актуальным в Discord Developer Portal
 const REDIRECT_URI = "https://vercel.app";
 
 export default async function handler(req, res) {
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Отправляем запрос обмена токенов в Дискорд с полной маскировкой под браузер
+    // Шаг 1: Обмениваем код на токен
     const tokenResponse = await fetch('https://discord.com', {
       method: 'POST',
       headers: { 
@@ -27,31 +27,40 @@ export default async function handler(req, res) {
       }),
     });
 
-    const tokenData = await tokenResponse.json();
+    // Читаем ответ как сырой текст, чтобы избежать ошибки Unexpected token '<'
+    const responseText = await tokenResponse.text();
 
-    if (tokenData.error) {
-      return res.status(400).json({ 
-        error: 'Дискорд отклонил запрос авторизации', 
-        details: tokenData.error_description || tokenData.error 
-      });
+    // Если Дискорд вернул ошибку в виде HTML или невалидного текста
+    if (!tokenResponse.ok) {
+      return res.status(tokenResponse.status).send(`Ошибка Дискорда при обмене токена: ${responseText}`);
     }
 
-    // Запрашиваем реальный профиль пользователя
+    // Если всё ок, парсим JSON вручную
+    const tokenData = JSON.parse(responseText);
+
+    // Шаг 2: Запрашиваем профиль пользователя
     const userResponse = await fetch('https://discord.com', {
       headers: { 
         Authorization: `Bearer ${tokenData.access_token}`,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
     });
-    const userData = await userResponse.json();
 
-    // Перенаправляем обратно на главную форму
+    const userText = await userResponse.text();
+
+    if (!userResponse.ok) {
+      return res.status(userResponse.status).send(`Ошибка Дискорда при запросе профиля: ${userText}`);
+    }
+
+    const userData = JSON.parse(userText);
+
+    // Шаг 3: Перенаправляем на главную форму
     const profileData = encodeURIComponent(JSON.stringify(userData));
     return res.redirect(`/?user=${profileData}`);
 
   } catch (error) {
     return res.status(500).json({ 
-      error: 'Критическая ошибка на сервере Vercel', 
+      error: 'Критическая ошибка выполнения на сервере Vercel', 
       message: error.message 
     });
   }

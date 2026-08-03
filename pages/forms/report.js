@@ -16,15 +16,31 @@ const DEPARTMENTS = [
   { id: 'trainee', name: 'Trainee (Стажёр)', emoji: '📖' }
 ];
 
+// ===== СПИСОК РАНГОВ (от младшего к старшему) =====
+const RANKS = [
+  'Trainee',
+  'Junior Agent',
+  'Agent',
+  'Senior Agent',
+  'Special Agent',
+  'Supervisory Special Agent',
+  'Assistant Section Chief',
+  'Section Chief',
+  'Deputy Assistant Director',
+  'Assistant Director'
+];
+
 export default function ReportForm() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    fullName: '',
     department: '',
-    content: '',
-    results: ''
+    currentRank: '',
+    targetRank: '',
+    workLinks: ''
   });
 
   useEffect(() => {
@@ -52,9 +68,11 @@ export default function ReportForm() {
           type: 'report',
           userId: user.id,
           username: user.username,
+          fullName: formData.fullName,
           department: formData.department,
-          content: formData.content,
-          results: formData.results
+          currentRank: formData.currentRank,
+          targetRank: formData.targetRank,
+          workLinks: formData.workLinks
         })
       });
 
@@ -91,16 +109,19 @@ export default function ReportForm() {
         <h1>📋 Отчёт о повышении</h1>
         
         <form onSubmit={handleSubmit}>
+          {/* ПОЛЕ 1: Имя Фамилия + Статик */}
           <div className="form-group">
-            <label>Discord ID</label>
+            <label>Имя Фамилия + Статик *</label>
             <input 
               type="text" 
-              value={`${user.username} (${user.id})`}
-              disabled 
-              className="disabled-input" 
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+              placeholder="Например: Sanya Suspect 270726"
             />
           </div>
 
+          {/* ПОЛЕ 2: Выбор отдела */}
           <div className="form-group">
             <label>Выберите отдел *</label>
             <select
@@ -118,25 +139,62 @@ export default function ReportForm() {
             </select>
           </div>
 
+          {/* ПОЛЕ 3: Текущий ранг */}
           <div className="form-group">
-            <label>Содержание отчёта *</label>
+            <label>Ваш текущий ранг *</label>
+            <select
+              required
+              value={formData.currentRank}
+              onChange={(e) => setFormData({...formData, currentRank: e.target.value})}
+              className="select-input"
+            >
+              <option value="">-- Выберите текущий ранг --</option>
+              {RANKS.map(rank => (
+                <option key={rank} value={rank}>
+                  {rank}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ПОЛЕ 4: На какой ранг повышаетесь */}
+          <div className="form-group">
+            <label>На какой ранг повышаетесь *</label>
+            <select
+              required
+              value={formData.targetRank}
+              onChange={(e) => setFormData({...formData, targetRank: e.target.value})}
+              className="select-input"
+            >
+              <option value="">-- Выберите целевой ранг --</option>
+              {RANKS.map(rank => (
+                <option key={rank} value={rank}>
+                  {rank}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ПОЛЕ 5: Ссылки на проделанную работу */}
+          <div className="form-group">
+            <label>Ссылки на проделанную работу *</label>
             <textarea 
               required
-              value={formData.content}
-              onChange={(e) => setFormData({...formData, content: e.target.value})}
-              placeholder="Опишите суть отчёта..."
-              rows="5"
+              value={formData.workLinks}
+              onChange={(e) => setFormData({...formData, workLinks: e.target.value})}
+              placeholder="Вставьте ссылки на ваши отчёты, посты или другие доказательства работы..."
+              rows="4"
             />
           </div>
 
+          {/* ПОЛЕ 6: Discord ID (в самом низу) */}
           <div className="form-group">
-            <label>Результаты и достижения *</label>
-            <textarea 
-              required
-              value={formData.results}
-              onChange={(e) => setFormData({...formData, results: e.target.value})}
-              placeholder="Опишите достигнутые результаты..."
-              rows="4"
+            <label>Discord ID</label>
+            <input 
+              type="text" 
+              value={`${user.username} (${user.id})`}
+              disabled 
+              className="disabled-input" 
             />
           </div>
 
@@ -199,6 +257,7 @@ export default function ReportForm() {
           color: white;
           font-size: 15px;
           transition: border-color 0.2s;
+          box-sizing: border-box;
         }
         .select-input {
           appearance: none;

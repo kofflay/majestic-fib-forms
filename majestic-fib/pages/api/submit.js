@@ -87,4 +87,23 @@ function getFormTitle(type) {
   return titles[type] || 'Новая заявка';
 }
 
-function getFormColor
+function getFormColor(type) {
+  const colors = {
+    promotion: 0x4CAF50,
+    transfer: 0x2196F3,
+    report: 0xFF9800
+  };
+  return colors[type] || 0x5865F2;
+}
+
+function formatFieldName(key) {
+  const names = {
+    currentRank: '📛 Текущая должность',
+    requestedRank: '⭐ Запрашиваемая должность',
+    reason: '📝 Причина',
+    experience: '💼 Опыт работы',
+    userId: '🆔 Discord ID',
+    username: '👤 Имя пользователя'
+  };
+  return names[key] || key;
+}

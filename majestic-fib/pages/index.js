@@ -6,7 +6,6 @@ const BLACKLIST = [
   "112233445566778899"
 ];
 
-const CLIENT_ID = "1533765326213222491";
 const WEBHOOK_URL = "https://discord.com";
 
 export default function FibForm() {
@@ -15,14 +14,9 @@ export default function FibForm() {
   const [status, setStatus] = useState('');
   const [formData, setFormData] = useState({ nameAndStatic: '', rankChange: '1-2 ранг', evidenceLinks: '' });
 
-  // Логика авторизации без всплывающих окон (в текущей вкладке)
+  // Логика авторизации: полностью прямая, простая текстовая ссылка без переменных
   const handleLogin = () => {
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    const redirectUri = encodeURIComponent(`${protocol}//${host}/api/auth`);
-    
-    // Ссылка исправлена: добавлен знак '?', убраны ошибочные склейки
-    window.location.href = `https://discord.com{CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=identify`;
+    window.location.href = "https://discord.com";
   };
 
   // Ловим данные пользователя, когда он вернулся от Дискорда
@@ -38,7 +32,6 @@ export default function FibForm() {
         if (BLACKLIST.includes(loggedInUser.id)) {
           setIsBanned(true);
         }
-        // Красиво чистим адресную строку, убирая длинный код юзера из ссылки
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (e) {
         console.error("Ошибка при обработке профиля", e);

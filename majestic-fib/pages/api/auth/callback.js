@@ -2,15 +2,17 @@
 export default async (req, res) => {
   const { code } = req.query;
 
+  // Если Discord не прислал код (ошибка или отмена), возвращаем ошибку
   if (!code) {
-    return res.status(400).json({ error: 'Отсутствует код авторизации' });
+    return res.status(400).json({ error: 'Отсутствует код авторизации. Возможно, вход был отменен.' });
   }
 
+  // Определяем правильный callback URL (важно для Vercel)
   const redirectUri = `\${process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`;
 
   try {
-    // 1. Обмениваем код на токен доступа
-    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+    // ШАГ 1: Обмениваем код на access_token
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -22,30 +24,31 @@ export default async (req, res) => {
       })
     });
 
-    const tokenData = await tokenRes.json();
+    const tokenData = await tokenResponse.json();
 
+    // Проверка на ошибки от Discord (неверный код, истек срок и т.д.)
     if (tokenData.error) {
       console.error('Ошибка получения токена:', tokenData);
       return res.status(400).json({ error: tokenData.error });
     }
 
-    // 2. Получаем данные пользователя
-    const userRes = await fetch('https://discord.com/api/users/@me', {
+    // ШАГ 2: Используем полученный токен, чтобы получить данные пользователя
+    const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer \${tokenData.access_token}` }
     });
 
-    const user = await userRes.json();
+    const user = await userResponse.json();
 
-    // 3. Возвращаем данные фронтенду (он сохранит их в localStorage)
-    // Мы возвращаем только то, что нужно: id и username
-    return res.json({
-      id: user.id,
-      username: user.username,
-      avatar: user.avatar
+    // ШАГ 3: Возвращаем данные фронтенду
+    // Мы отдаем только то, что нужно для форм: ID (для черного списка) и имя
+    return res.json({ 
+      id: user.id, 
+      username: user.username, 
+      avatar: user.avatar 
     });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    console.error('Критическая ошибка в callback:', error);
+    return res.status(500).json({ error: 'Внутренняя ошибка сервера при обработке входа' });
   }
 };

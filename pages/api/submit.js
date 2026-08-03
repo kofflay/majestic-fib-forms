@@ -95,9 +95,10 @@ const TRANSFER_WEBHOOKS = {
   'nsb': process.env.WEBHOOK_TRANSFER_NSB
 };
 
-// Вебхук для повышения (общий)
+// ===== ВЕБХУКИ ДЛЯ РАЗНЫХ ТИПОВ ЗАЯВОК =====
 const webhooks = {
-  promotion: process.env.WEBHOOK_PROMOTION
+  promotion: process.env.WEBHOOK_PROMOTION,
+  highrank: process.env.WEBHOOK_HIGH_RANK_REPORT
 };
 
 export default async function handler(req, res) {
@@ -164,8 +165,17 @@ export default async function handler(req, res) {
     if (deptInfo && deptInfo.roleId2) {
       roleMentions += `<@&${deptInfo.roleId2}>`;
     }
+  } else if (type === 'highrank') {
+    // ===== ОТДЕЛЬНЫЙ ВЕБХУК ДЛЯ ХАЙ РАНГОВ =====
+    webhookUrl = webhooks.highrank;
+    if (!webhookUrl) {
+      return res.status(500).json({ 
+        error: 'Вебхук для отчётов на повышение (Хай Ранги) не настроен на сервере' 
+      });
+    }
+    roleMentions = '<@&1289343511354671125>';
   } else {
-    webhookUrl = webhooks[type];
+    webhookUrl = webhooks.promotion;
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Invalid form type' });
     }
@@ -187,6 +197,7 @@ export default async function handler(req, res) {
     timestamp: new Date().toISOString()
   };
 
+  // ===== ФОРМИРУЕМ СООБЩЕНИЕ =====
   const content = roleMentions.trim() || undefined;
 
   try {
@@ -235,6 +246,9 @@ function getFormTitle(type, department) {
     const deptName = deptNames[department] || 'Отдел';
     return `🔄 Запрос на перевод в ${deptName}`;
   }
+  if (type === 'highrank') {
+    return '📈 Отчёт на повышение (Хай Ранги)';
+  }
   const titles = {
     promotion: '📈 Запрос на повышение'
   };
@@ -245,7 +259,8 @@ function getFormColor(type) {
   const colors = {
     promotion: 0x4CAF50,
     transfer: 0x2196F3,
-    report: 0xFF9800
+    report: 0xFF9800,
+    highrank: 0xFF69B4
   };
   return colors[type] || 0x5865F2;
 }
@@ -276,6 +291,15 @@ function buildFields(type, department, data, userId, username) {
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '📊 Диапазон рангов', value: data.rankRange || 'Не указано', inline: false },
       { name: '🔗 Ссылка на отчет', value: data.reportLink || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'highrank') {
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '📊 Диапазон рангов', value: data.rankRange || 'Не указано', inline: false },
+      { name: '🔗 Ссылка на работу', value: data.workLink || 'Не указано', inline: false },
       ...baseFields
     ];
   }

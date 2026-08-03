@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import getConfig from 'next/config';
+
+const { publicRuntimeConfig } = getConfig();
 
 export default function Home() {
   const router = useRouter();
@@ -23,12 +26,9 @@ export default function Home() {
   }, [router.query]);
 
   const handleDiscordLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
-    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI;
-    
     const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
+      client_id: publicRuntimeConfig.discordClientId,
+      redirect_uri: publicRuntimeConfig.discordRedirectUri,
       response_type: 'code',
       scope: 'identify',
       prompt: 'none'

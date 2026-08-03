@@ -1,16 +1,30 @@
+// Переключаем сервер на Edge Runtime, чтобы обойти блокировку fetch на Vercel
+export const config = {
+  runtime: 'edge',
+};
+
 const CLIENT_ID = "1533765326213222491";
 const CLIENT_SECRET = "0hzfJfnNr4-_6LxhVXBh9uWfZA6S2zsV";
 
-export default async function handler(req, res) {
-  const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'Код не найден' });
-
-  const protocol = req.headers['x-forwarded-proto'] || 'http';
-  const host = req.headers.host;
-  const redirectUri = `${protocol}://${host}/api/auth`;
-
+export default async function handler(req) {
   try {
-    // Обмениваем временный код на секретный токен доступа
+    // Получаем параметры из URL запроса
+    const { searchParams } = new URL(req.url);
+    const code = searchParams.get('code');
+
+    if (!code) {
+      return new Response(JSON.stringify({ error: 'Код не найден' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Определяем обратный адрес (динамически подстраивается под ваш домен)
+    const host = req.headers.get('host');
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const redirectUri = `${protocol}://${host}/api/auth`;
+
+    // 1. Обмениваем временный код на секретный токен доступа
     const tokenResponse = await fetch('https://discord.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -25,19 +39,29 @@ export default async function handler(req, res) {
     });
 
     const tokenData = await tokenResponse.json();
-    if (tokenData.error) return res.status(400).json({ error: tokenData.error_description });
+    if (tokenData.error) {
+      return new Response(JSON.stringify({ error: tokenData.error_description }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Запрашиваем реальный профиль пользователя
+    // 2. Запрашиваем реальный профиль пользователя по полученному токену
     const userResponse = await fetch('https://discord.com', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const userData = await userResponse.json();
 
-    // Безопасно перенаправляем пользователя обратно на главную страницу, прикрепив его данные в URL
+    // 3. Безопасно перенаправляем пользователя обратно на главную страницу, прикрепив профиль в URL
     const profileData = encodeURIComponent(JSON.stringify(userData));
-    res.redirect(`/?user=${profileData}`);
+    const origin = `${protocol}://${host}`;
+    
+    return Response.redirect(`${origin}/?user=${profileData}`);
 
   } catch (error) {
-    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    return new Response(JSON.stringify({ error: 'Ошибка на стороне сервера авторизации' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

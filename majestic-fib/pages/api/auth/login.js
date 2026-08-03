@@ -1,5 +1,8 @@
+// pages/api/auth/login.js
 export default (req, res) => {
-  const redirectUri = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`;
+  // ВАЖНО: Проверь, чтобы здесь было именно /api/auth/callback
+  const redirectUri = `\${process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`;
+  
   const scope = 'identify';
   const responseType = 'code';
 

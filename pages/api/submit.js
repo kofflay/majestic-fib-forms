@@ -103,6 +103,63 @@ const webhooks = {
   resignation: process.env.WEBHOOK_RESIGNATION
 };
 
+// ===== ОТПРАВКА В DISCORD (ПЕРЕНОС ИЗ APPS SCRIPT) =====
+async function sendToDiscord(webhookUrl, data, retries = 3) {
+  // Заменяем discord.com на discordapp.com (как в Apps Script)
+  const safeWebhook = webhookUrl.replace('discord.com', 'discordapp.com');
+  
+  let lastError = null;
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(safeWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      // Логируем код ответа (как Logger.log в Apps Script)
+      console.log(`📊 Код ответа Discord [попытка ${i + 1}]: ${response.status}`);
+      
+      if (response.ok) {
+        return { success: true, status: response.status };
+      }
+      
+      // Если Discord говорит "Too Many Requests" — ждём и пробуем снова
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After')) || 5;
+        console.warn(`⚠️ Discord вернул 429. Ждём ${retryAfter} секунд...`);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+      
+      // Другие ошибки (403, 404, 500 и т.д.)
+      const errorText = await response.text();
+      console.error(`❌ Ошибка Discord: ${response.status} - ${errorText}`);
+      return { 
+        success: false, 
+        status: response.status, 
+        error: errorText || `HTTP ${response.status}` 
+      };
+      
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Попытка ${i + 1}/${retries} не удалась:`, error.message);
+      
+      if (i < retries - 1) {
+        const waitTime = 1000 * (i + 1);
+        console.log(`⏳ Повтор через ${waitTime}мс...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+  
+  return { 
+    success: false, 
+    error: lastError ? lastError.message : 'Неизвестная ошибка' 
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -206,27 +263,20 @@ export default async function handler(req, res) {
 
   const content = roleMentions.trim() || undefined;
 
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: content,
-        embeds: [embed],
-        username: 'Majestic FIB Forms',
-        avatar_url: 'https://i.imgur.com/AfFp7pu.png'
-      })
-    });
+  // ===== ОТПРАВЛЯЕМ В DISCORD (С ПОВТОРНЫМИ ПОПЫТКАМИ) =====
+  const result = await sendToDiscord(webhookUrl, {
+    content: content,
+    embeds: [embed],
+    username: 'Majestic FIB Forms',
+    avatar_url: 'https://i.imgur.com/AfFp7pu.png'
+  });
 
-    if (response.ok) {
-      res.status(200).json({ success: true });
-    } else {
-      const error = await response.text();
-      throw new Error(`Webhook failed: ${error}`);
-    }
-  } catch (error) {
-    console.error('Submit error:', error);
-    res.status(500).json({ error: 'Failed to submit form' });
+  if (result.success) {
+    console.log(`✅ Заявка успешно отправлена (${type})`);
+    res.status(200).json({ success: true });
+  } else {
+    console.error(`❌ Ошибка отправки заявки: ${result.error}`);
+    res.status(500).json({ error: `Не удалось отправить заявку: ${result.error}` });
   }
 }
 
@@ -333,7 +383,7 @@ function buildFields(type, department, targetDepartment, data, userId, username)
   return [...baseFields, ...Object.entries(data).map(([key, value]) => ({ name: key, value: String(value) || 'Не указано', inline: false }))];
 }
 
-// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ (БЕЗ @everyone) =====
+// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ =====
 async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
   const webhookUrl = process.env.WEBHOOK_BANWORDS || process.env.WEBHOOK_LOGS;
   if (!webhookUrl) return;
@@ -361,15 +411,11 @@ async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
   };
 
   try {
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: '🚨 **Обнаружен банворд!**',
-        embeds: [embed],
-        username: 'FIB Модератор',
-        avatar_url: 'https://i.imgur.com/AfFp7pu.png'
-      })
+    await sendToDiscord(webhookUrl, {
+      content: '🚨 **Обнаружен банворд!**',
+      embeds: [embed],
+      username: 'FIB Модератор',
+      avatar_url: 'https://i.imgur.com/AfFp7pu.png'
     });
   } catch (error) {
     console.error('Ошибка отправки уведомления о банворде:', error);

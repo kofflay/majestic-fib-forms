@@ -1,35 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-const sections = [
-  {
-    id: 'promotion',
-    title: 'Запрос на повышение',
-    description: 'Подать заявку на повышение в должности',
-    icon: '📈',
-    color: '#4CAF50'
-  },
-  {
-    id: 'transfer',
-    title: 'Перевод в отдел',
-    description: 'Запросить перевод в другой отдел',
-    icon: '🔄',
-    color: '#2196F3'
-  },
-  {
-    id: 'report',
-    title: 'Отчёт о повышении',
-    description: 'Отправить отчёт о выполненном повышении',
-    icon: '📋',
-    color: '#FF9800'
-  }
-];
-
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch('/api/me')
@@ -41,20 +16,11 @@ export default function Dashboard() {
         }
         setUser(data.user);
         setLoading(false);
-      })
-      .catch(() => router.push('/'));
+      });
   }, []);
 
-  const copyId = () => {
-    if (user) {
-      navigator.clipboard.writeText(user.id);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const logout = () => {
-    document.cookie = 'token=; path=/; max-age=0';
+  const handleLogout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
     router.push('/');
   };
 
@@ -67,168 +33,132 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) return null;
-
   return (
     <div className="dashboard">
-      <header className="header">
+      <div className="header">
+        <h1>🏛️ Majestic FIB Forms</h1>
         <div className="user-info">
           <img 
-            src={user.avatar 
-              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
-              : `https://cdn.discordapp.com/embed/avatars/0.png`
-            }
-            alt={user.username}
+            src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} 
+            alt="Avatar" 
             className="avatar"
           />
-          <div>
-            <h2>{user.username}</h2>
-            <p className="user-id">
-              ID: {user.id}
-              <button onClick={copyId} className="copy-btn">
-                {copied ? '✓' : '📋'}
-              </button>
-            </p>
-          </div>
+          <span>{user.username}</span>
+          <button onClick={handleLogout} className="logout-btn">Выйти</button>
         </div>
-        <button onClick={logout} className="logout-btn">
-          Выйти
-        </button>
-      </header>
+      </div>
 
-      <main className="main">
-        <h1>Выберите тип заявки</h1>
-        <div className="sections-grid">
-          {sections.map(section => (
-            <div 
-              key={section.id}
-              className="section-card"
-              onClick={() => router.push(`/forms/${section.id}`)}
-            >
-              <span className="section-icon">{section.icon}</span>
-              <h3>{section.title}</h3>
-              <p>{section.description}</p>
-              <div className="card-line" style={{ background: section.color }}></div>
-            </div>
-          ))}
+      <div className="cards-grid">
+        {/* Кнопка 1: Запрос на повышение */}
+        <div className="card" onClick={() => router.push('/forms/promotion')}>
+          <div className="card-icon">📈</div>
+          <h3>Запрос на повышение</h3>
+          <p>Подать заявку на повышение по рангам</p>
         </div>
-      </main>
+
+        {/* Кнопка 2: Перевод в отдел */}
+        <div className="card" onClick={() => router.push('/forms/transfer')}>
+          <div className="card-icon">🔄</div>
+          <h3>Перевод в отдел</h3>
+          <p>Подать заявку на перевод в другой отдел</p>
+        </div>
+
+        {/* Кнопка 3: Отчёт о повышении */}
+        <div className="card" onClick={() => router.push('/forms/report')}>
+          <div className="card-icon">📋</div>
+          <h3>Отчёт о повышении</h3>
+          <p>Подать отчёт о повышении для своего отдела</p>
+        </div>
+
+        {/* 👇 НОВАЯ КНОПКА 4: Хай Ранги */}
+        <div className="card" onClick={() => router.push('/forms/high-rank-report')}>
+          <div className="card-icon">🌟</div>
+          <h3>Отчёт на повышение (Хай Ранги)</h3>
+          <p>Для повышения с 6-го по 15-й ранг</p>
+        </div>
+      </div>
 
       <style jsx>{`
         .dashboard {
           min-height: 100vh;
           background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+          padding: 30px;
         }
         .header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 40px;
+          max-width: 1200px;
+          margin: 0 auto 40px;
+          padding: 20px;
           background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .header h1 {
+          color: white;
+          font-size: 28px;
+          margin: 0;
         }
         .user-info {
           display: flex;
           align-items: center;
           gap: 15px;
+          color: #8b8ba7;
         }
         .avatar {
-          width: 50px;
-          height: 50px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          border: 2px solid #5865F2;
-        }
-        .user-info h2 {
-          color: white;
-          font-size: 18px;
-        }
-        .user-id {
-          color: #8b8ba7;
-          font-size: 14px;
-          margin-top: 2px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .copy-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 16px;
-          padding: 2px;
-          border-radius: 4px;
-          transition: background 0.2s;
-        }
-        .copy-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
         }
         .logout-btn {
           background: rgba(255, 255, 255, 0.08);
           color: white;
           border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 8px 20px;
+          padding: 8px 16px;
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s;
-          font-size: 14px;
         }
         .logout-btn:hover {
-          background: rgba(255, 0, 0, 0.2);
-          border-color: rgba(255, 0, 0, 0.4);
+          background: rgba(255, 255, 255, 0.15);
         }
-        .main {
-          padding: 40px;
-          max-width: 1000px;
+        .cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+          max-width: 1200px;
           margin: 0 auto;
         }
-        .main h1 {
-          color: white;
-          margin-bottom: 30px;
-          font-size: 28px;
-        }
-        .sections-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 20px;
-        }
-        .section-card {
+        .card {
           background: rgba(255, 255, 255, 0.03);
           backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 16px;
           padding: 30px;
           cursor: pointer;
-          border: 1px solid rgba(255, 255, 255, 0.08);
           transition: all 0.3s;
-          position: relative;
-          overflow: hidden;
+          text-align: center;
         }
-        .section-card:hover {
+        .card:hover {
           transform: translateY(-5px);
-          border-color: rgba(255, 255, 255, 0.2);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          background: rgba(255, 255, 255, 0.06);
+          border-color: #5865F2;
+          box-shadow: 0 10px 30px rgba(88, 101, 242, 0.15);
         }
-        .card-line {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-        }
-        .section-icon {
-          font-size: 40px;
-          display: block;
+        .card-icon {
+          font-size: 48px;
           margin-bottom: 15px;
         }
-        .section-card h3 {
+        .card h3 {
           color: white;
+          font-size: 18px;
           margin-bottom: 10px;
-          font-size: 20px;
         }
-        .section-card p {
+        .card p {
           color: #8b8ba7;
           font-size: 14px;
-          line-height: 1.5;
+          margin: 0;
         }
         .loading-container {
           display: flex;

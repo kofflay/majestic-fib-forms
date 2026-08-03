@@ -3,7 +3,7 @@ export const config = {
 };
 
 const CLIENT_ID = "1533765326213222491";
-const CLIENT_SECRET = "0hzfJfnNr4-_6LxhVXBh9uWfZA6S2zsV";
+const CLIENT_SECRET = "ZTzzQ3uggsHu2LBiPpYWtbMqW0JKAP_V";
 const REDIRECT_URI = "https://vercel.app";
 
 export default async function handler(req) {

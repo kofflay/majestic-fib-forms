@@ -22,7 +22,7 @@ export default async function handler(req) {
     // Определяем обратный адрес (динамически подстраивается под ваш домен)
     const host = req.headers.get('host');
     const protocol = host.includes('localhost') ? 'http' : 'https';
-    const redirectUri = `${protocol}://${host}/api/auth`;
+    const redirectUri = "https://vercel.app";
 
     // 1. Обмениваем временный код на секретный токен доступа
     const tokenResponse = await fetch('https://discord.com', {

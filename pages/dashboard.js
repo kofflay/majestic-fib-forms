@@ -49,35 +49,30 @@ export default function Dashboard() {
       </div>
 
       <div className="cards-grid">
-        {/* Кнопка 1: Запрос на повышение */}
         <div className="card" onClick={() => router.push('/forms/promotion')}>
           <div className="card-icon">📈</div>
           <h3>Запрос на повышение</h3>
           <p>Подать запрос на повышение</p>
         </div>
 
-        {/* Кнопка 2: Перевод в отдел */}
         <div className="card" onClick={() => router.push('/forms/transfer')}>
           <div className="card-icon">🔄</div>
           <h3>Перевод в отдел</h3>
           <p>Подать заявку на перевод в другой отдел</p>
         </div>
 
-        {/* Кнопка 3: Отчёт о повышении */}
         <div className="card" onClick={() => router.push('/forms/report')}>
           <div className="card-icon">📋</div>
           <h3>Отчёт о повышении</h3>
           <p>Подать отчёт о повышении для своего отдела</p>
         </div>
 
-        {/* Кнопка 4: Хай Ранги */}
         <div className="card" onClick={() => router.push('/forms/high-rank-report')}>
           <div className="card-icon">🌟</div>
           <h3>Отчёт на повышение (Хай Ранги)</h3>
           <p>Повышение для старшего состава</p>
         </div>
 
-        {/* Кнопка 5: Увольнение */}
         <div className="card" onClick={() => router.push('/forms/resignation')}>
           <div className="card-icon">🚪</div>
           <h3>Заявление на увольнение</h3>

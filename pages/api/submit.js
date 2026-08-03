@@ -1,5 +1,6 @@
 import { verifyToken } from '../../lib/discord';
-import { isBlacklisted } from '../../lib/blacklist';
+import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
+import { containsBadWords, findBadWord, findAllBadWords } from '../../lib/badwords';
 
 // ===== СПИСОК ВСЕХ ОТДЕЛОВ С ВЕБХУКАМИ И РОЛЯМИ =====
 const DEPARTMENTS = {
@@ -123,64 +124,64 @@ export default async function handler(req, res) {
 
   // ===== РАЗБИРАЕМ ЗАПРОС =====
   const { type, userId, username, department, targetDepartment, ...formData } = req.body;
+
+  // ===== ПРОВЕРКА БАНВОРДОВ =====
+  const allText = Object.values(formData)
+    .filter(val => typeof val === 'string')
+    .join(' ');
   
+  if (containsBadWords(allText)) {
+    const foundWords = findAllBadWords(allText);
+    const foundWord = findBadWord(allText);
+    
+    // Отправляем уведомление админам
+    await sendBanWordAlert(user, username, foundWord || foundWords.join(', '), allText, type, req);
+    
+    // Добавляем пользователя в чёрный список
+    addToBlacklist(user.id, username, `Банворд: ${foundWord || foundWords.join(', ')}`);
+    
+    return res.status(403).json({ 
+      error: `⛔ Ваша заявка содержит запрещённое слово "${foundWord || foundWords.join(', ')}". Доступ к системе заблокирован.` 
+    });
+  }
+
+  // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   let webhookUrl;
   let roleMentions = '';
 
-  // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
     if (!dept) {
-      return res.status(400).json({ 
-        error: 'Выберите корректный отдел для отчёта' 
-      });
+      return res.status(400).json({ error: 'Выберите корректный отдел для отчёта' });
     }
     webhookUrl = dept.webhook;
     if (!webhookUrl) {
-      return res.status(500).json({ 
-        error: `Вебхук для отдела "${dept.name}" не настроен на сервере` 
-      });
+      return res.status(500).json({ error: `Вебхук для отдела "${dept.name}" не настроен на сервере` });
     }
-    if (dept.roleId) {
-      roleMentions += `<@&${dept.roleId}> `;
-    }
-    if (dept.roleId2) {
-      roleMentions += `<@&${dept.roleId2}>`;
-    }
+    if (dept.roleId) roleMentions += `<@&${dept.roleId}> `;
+    if (dept.roleId2) roleMentions += `<@&${dept.roleId2}>`;
   } else if (type === 'transfer') {
     const deptKey = targetDepartment;
     if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
-      return res.status(400).json({ 
-        error: 'Некорректный отдел для перевода' 
-      });
+      return res.status(400).json({ error: 'Некорректный отдел для перевода' });
     }
     webhookUrl = TRANSFER_WEBHOOKS[deptKey];
     if (!webhookUrl) {
-      return res.status(500).json({ 
-        error: `Вебхук для перевода в отдел "${targetDepartment}" не настроен на сервере` 
-      });
+      return res.status(500).json({ error: `Вебхук для перевода в отдел "${targetDepartment}" не настроен на сервере` });
     }
     const deptInfo = DEPARTMENTS[targetDepartment];
-    if (deptInfo && deptInfo.roleId) {
-      roleMentions += `<@&${deptInfo.roleId}> `;
-    }
-    if (deptInfo && deptInfo.roleId2) {
-      roleMentions += `<@&${deptInfo.roleId2}>`;
-    }
+    if (deptInfo && deptInfo.roleId) roleMentions += `<@&${deptInfo.roleId}> `;
+    if (deptInfo && deptInfo.roleId2) roleMentions += `<@&${deptInfo.roleId2}>`;
   } else if (type === 'highrank') {
     webhookUrl = webhooks.highrank;
     if (!webhookUrl) {
-      return res.status(500).json({ 
-        error: 'Вебхук для отчётов на повышение (Хай Ранги) не настроен на сервере' 
-      });
+      return res.status(500).json({ error: 'Вебхук для отчётов на повышение (Хай Ранги) не настроен на сервере' });
     }
     roleMentions = '<@&1289343511354671125>';
   } else if (type === 'resignation') {
     webhookUrl = webhooks.resignation;
     if (!webhookUrl) {
-      return res.status(500).json({ 
-        error: 'Вебхук для заявлений на увольнение не настроен на сервере' 
-      });
+      return res.status(500).json({ error: 'Вебхук для заявлений на увольнение не настроен на сервере' });
     }
     roleMentions = '<@&1274110499356934211>';
   } else {
@@ -240,40 +241,18 @@ function getFormTitle(type, department, targetDepartment) {
     return `📋 Отчёт о повышении • ${dept ? dept.emoji + ' ' + dept.name : 'Отдел'}`;
   }
   if (type === 'transfer') {
-    const deptNames = {
-      'cid': 'CID',
-      'fa': 'FA',
-      'hrt': 'HRT',
-      'atf': 'ATF',
-      'af': 'AF',
-      'ocu': 'OCU',
-      'dea': 'DEA',
-      'fna': 'FNA',
-      'nsb': 'NSB'
-    };
+    const deptNames = { 'cid': 'CID', 'fa': 'FA', 'hrt': 'HRT', 'atf': 'ATF', 'af': 'AF', 'ocu': 'OCU', 'dea': 'DEA', 'fna': 'FNA', 'nsb': 'NSB' };
     const deptName = deptNames[targetDepartment] || 'Отдел';
     return `🔄 Запрос на перевод в ${deptName}`;
   }
-  if (type === 'highrank') {
-    return '📈 Отчёт на повышение (Хай Ранги)';
-  }
-  if (type === 'resignation') {
-    return '📋 Заявление на увольнение';
-  }
-  const titles = {
-    promotion: '📈 Запрос на повышение'
-  };
+  if (type === 'highrank') return '📈 Отчёт на повышение (Хай Ранги)';
+  if (type === 'resignation') return '📋 Заявление на увольнение';
+  const titles = { promotion: '📈 Запрос на повышение' };
   return titles[type] || 'Новая заявка';
 }
 
 function getFormColor(type) {
-  const colors = {
-    promotion: 0x4CAF50,
-    transfer: 0x2196F3,
-    report: 0xFF9800,
-    highrank: 0xFF69B4,
-    resignation: 0xDC3545
-  };
+  const colors = { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545 };
   return colors[type] || 0x5865F2;
 }
 
@@ -286,7 +265,6 @@ function buildFields(type, department, targetDepartment, data, userId, username)
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
     const instructorText = data.isInstructor === 'yes' ? '✅ Да' : '❌ Нет';
-    
     return [
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '🏢 Отдел', value: dept ? dept.emoji + ' ' + dept.name : 'Не указан', inline: false },
@@ -355,12 +333,48 @@ function buildFields(type, department, targetDepartment, data, userId, username)
     return fields;
   }
 
-  return [
-    ...baseFields,
-    ...Object.entries(data).map(([key, value]) => ({
-      name: key,
-      value: String(value) || 'Не указано',
-      inline: false
-    }))
-  ];
+  return [...baseFields, ...Object.entries(data).map(([key, value]) => ({ name: key, value: String(value) || 'Не указано', inline: false }))];
+}
+
+// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ =====
+async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
+  const webhookUrl = process.env.WEBHOOK_BANWORDS || process.env.WEBHOOK_LOGS;
+  if (!webhookUrl) return;
+
+  const ip = req.headers['x-real-ip'] || (req.headers['x-forwarded-for']?.split(',')[0].trim()) || 'неизвестен';
+
+  const embed = {
+    title: '🚨 ОБНАРУЖЕН БАНВОРД',
+    color: 0xFF0000,
+    author: {
+      name: username,
+      icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+    },
+    fields: [
+      { name: '👤 Пользователь', value: `<@${user.id}>`, inline: true },
+      { name: '🆔 Discord ID', value: user.id, inline: true },
+      { name: '🌐 IP-адрес', value: ip, inline: true },
+      { name: '📋 Тип заявки', value: type || 'неизвестен', inline: true },
+      { name: '🚫 Запрещённое слово', value: `**${badWords}**`, inline: true },
+      { name: '📝 Полный текст', value: `\`\`\`\n${fullText.slice(0, 1000)}\n\`\`\``, inline: false },
+      { name: '📌 Действие', value: 'Пользователь автоматически добавлен в чёрный список', inline: false }
+    ],
+    footer: { text: 'Majestic FIB Forms • Система модерации' },
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: '@everyone 🚨 **Обнаружен банворд!**',
+        embeds: [embed],
+        username: 'FIB Модератор',
+        avatar_url: 'https://i.imgur.com/AfFp7pu.png'
+      })
+    });
+  } catch (error) {
+    console.error('Ошибка отправки уведомления о банворде:', error);
+  }
 }

@@ -1,18 +1,16 @@
 // pages/api/auth/callback.js
-import fetch from 'node-fetch'; // Если у тебя старый Next.js, возможно, fetch уже встроен. Если будет ошибка, напиши.
-
 export default async (req, res) => {
   const { code } = req.query;
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET; // Тебе нужно добавить эту переменную в Vercel!
-  const redirectUri = `\${process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`;
+  const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+  const redirectUri = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`;
 
   if (!code || !clientId || !clientSecret) {
     return res.status(400).json({ error: 'Отсутствует код или переменные окружения' });
   }
 
   try {
-    // 1. Обмениваем код на токен доступа у Discord
+    // 1. Обмениваем код на токен
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -35,24 +33,22 @@ export default async (req, res) => {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Получаем данные пользователя по токену
+    // 2. Получаем данные пользователя
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        Authorization: `Bearer \${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
     const userData = await userResponse.json();
 
-    // 3. Возвращаем данные на фронтенд (в твой index.jsx)
-    // Мы возвращаем только то, что тебе нужно для localStorage
+    // 3. Возвращаем данные фронтенду
     return res.json({
       id: userData.id,
       username: userData.username,
       avatar: userData.avatar,
-      discriminator: userData.discriminator // если нужно
+      discriminator: userData.discriminator,
     });
-
   } catch (error) {
     console.error('Ошибка авторизации:', error);
     return res.status(500).json({ error: 'Внутренняя ошибка сервера' });

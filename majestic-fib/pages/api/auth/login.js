@@ -1,28 +1,30 @@
 // pages/api/auth/login.js
 export default (req, res) => {
-  // 1. Получаем адрес сайта прямо из запроса пользователя.
-  // host = majestic-fib-forms-xxxxx.vercel.app (или localhost:3000)
-  const host = req.headers.host;
-  // Проверяем, идет ли запрос по https (на Vercel всегда да, на localhost нет)
-  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  // 1. Получаем базовый URL. 
+  // process.env.VERCEL_URL — это автоматическая переменная от Vercel (выглядит как https://app-name.vercel.app)
+  // Если её нет (локально), используем localhost.
+  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
   
-  const baseUrl = `${protocol}://${host}`;
+  // 2. Формируем redirect_uri. 
+  // Важно: мы используем переменную baseUrl, а не строку "\${baseUrl}"
   const redirectUri = `\${baseUrl}/api/auth/callback`;
   
   const clientId = process.env.DISCORD_CLIENT_ID;
   const scope = 'identify';
   const responseType = 'code';
 
+  // Проверка: если Client ID нет, значит, ты забыл добавить его в Vercel как Secret
   if (!clientId) {
-    return res.status(500).json({ error: 'DISCORD_CLIENT_ID не найден в переменных!' });
+    console.error('ОШИБКА: DISCORD_CLIENT_ID не найден в переменных окружения!');
+    return res.status(500).json({ error: 'Настрой переменные окружения в Vercel!' });
   }
 
-  // 2. Кодируем URI (обязательно для Discord)
+  // 3. Кодируем только значение redirect_uri для передачи в URL
   const encodedRedirectUri = encodeURIComponent(redirectUri);
 
-  // 3. Собираем ссылку
+  // 4. Собираем финальную ссылку
   const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&response_type=${responseType}&scope=${scope}`;
 
-  // 4. Перенаправляем
+  // 5. Перенаправляем пользователя
   return res.redirect(authUrl);
 };

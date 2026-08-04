@@ -138,13 +138,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 🔒 Данные из куки — единственный источник правды
+  // 🔒 Данные из куки
   const token = req.cookies.token;
   const user = verifyToken(token);
   
   if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // 🔒 IP (должен быть объявлен ДО использования!)
+  const ip = req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
 
   // 🔒 Проверка бана
   if (await isBlacklisted(user.id, ip)) {
@@ -154,17 +157,16 @@ export default async function handler(req, res) {
   }
 
   // 🔒 Проверка спама
-const ip = req.headers['x-vercel-forwarded-for'] || 'unknown';
-const spamCheck = await checkSpam(user.id, ip);
+  const spamCheck = await checkSpam(user.id, ip);
 
-if (spamCheck.isSpam) {
-  if (spamCheck.ban) {
-    await addToBlacklist(user.id, user.username, spamCheck.reason);
+  if (spamCheck.isSpam) {
+    if (spamCheck.ban) {
+      await addToBlacklist(user.id, user.username, spamCheck.reason, ip);
+    }
+    return res.status(429).json({ error: spamCheck.message });
   }
-  return res.status(429).json({ error: spamCheck.message });
-}
 
-  // 📦 Только данные формы, без userId/username
+  // 📦 Данные формы
   const { type, department, targetDepartment, ...formData } = req.body;
 
   // 🔒 Проверка банвордов
@@ -175,7 +177,7 @@ if (spamCheck.isSpam) {
     const foundWord = findBadWord(allText);
     
     await sendBanWordAlert(user, foundWord || foundWords.join(', '), allText, type, req);
-    await addToBlacklist(user.id, user.username, `Банворд: ${foundWord || foundWords.join(', ')}`);
+    await addToBlacklist(user.id, user.username, `Банворд: ${foundWord || foundWords.join(', ')}`, ip);
     
     return res.status(403).json({ 
       error: `⛔ Ваша заявка содержит запрещённое слово. Доступ к системе заблокирован.` 
@@ -215,7 +217,7 @@ if (spamCheck.isSpam) {
     roleMentions = '<@&1274110499356934211>';
   }
 
-  // 📧 Формируем embed (userId и username из токена!)
+  // 📧 Формируем embed
   const embed = {
     title: getFormTitle(type, department, targetDepartment),
     color: getFormColor(type),
@@ -244,7 +246,6 @@ if (spamCheck.isSpam) {
   }
 }
 
-// 📝 Заголовки форм
 function getFormTitle(type, department, targetDepartment) {
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
@@ -259,13 +260,11 @@ function getFormTitle(type, department, targetDepartment) {
   return '📈 Запрос на повышение';
 }
 
-// 🎨 Цвета форм
 function getFormColor(type) {
   const colors = { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545 };
   return colors[type] || 0x5865F2;
 }
 
-// 📋 Поля форм (без userId/username — они из токена!)
 function buildFields(type, department, targetDepartment, data, userId, username) {
   const baseFields = [
     { name: '👤 Отправитель', value: `<@${userId}>`, inline: true },
@@ -345,12 +344,11 @@ function buildFields(type, department, targetDepartment, data, userId, username)
   return [...baseFields, ...Object.entries(data).map(([key, value]) => ({ name: key, value: String(value) || 'Не указано', inline: false }))];
 }
 
-// 🚨 Отправка уведомления о банворде
 async function sendBanWordAlert(user, badWords, fullText, type, req) {
   const webhookUrl = process.env.WEBHOOK_BANWORDS || process.env.WEBHOOK_LOGS;
   if (!webhookUrl) return;
 
-  const ip = req.headers['x-real-ip'] || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'неизвестен';
+  const ip = req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'] || 'неизвестен';
 
   const embed = {
     title: '🚨 ОБНАРУЖЕН БАНВОРД',

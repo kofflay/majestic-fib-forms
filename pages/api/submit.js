@@ -147,7 +147,7 @@ export default async function handler(req, res) {
   }
 
   // 🔒 Проверка бана
-  if (await isBlacklisted(user.id)) {
+  if (await isBlacklisted(user.id, ip)) {
     return res.status(403).json({ 
       error: '⛔ Ваш доступ к системе заявок заблокирован. Обратитесь к администрации.' 
     });

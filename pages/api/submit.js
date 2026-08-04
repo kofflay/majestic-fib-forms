@@ -99,7 +99,8 @@ const TRANSFER_WEBHOOKS = {
 const webhooks = {
   promotion: process.env.WEBHOOK_PROMOTION,
   highrank: process.env.WEBHOOK_HIGH_RANK_REPORT,
-  resignation: process.env.WEBHOOK_RESIGNATION
+  resignation: process.env.WEBHOOK_RESIGNATION,
+  reinstatement: process.env.WEBHOOK_REINSTATEMENT
 };
 
 async function sendToDiscord(webhookUrl, data, retries = 3) {
@@ -205,6 +206,10 @@ export default async function handler(req, res) {
     webhookUrl = webhooks.resignation;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для увольнений не настроен' });
     roleMentions = '<@&1274110499356934211>';
+  } else if (type === 'reinstatement') {
+    webhookUrl = webhooks.reinstatement;
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для восстановления не настроен' });
+    roleMentions = '<@&1274110499356934211>';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });
@@ -257,11 +262,12 @@ function getFormTitle(type, department, targetDepartment) {
   }
   if (type === 'highrank') return '📈 Отчёт на повышение (Хай Ранги)';
   if (type === 'resignation') return '📋 Заявление на увольнение';
+  if (type === 'reinstatement') return '🔄 Восстановление в FIB';
   return '📈 Запрос на повышение';
 }
 
 function getFormColor(type) {
-  const colors = { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545 };
+  const colors = { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545, reinstatement: 0x9C27B0 };
   return colors[type] || 0x5865F2;
 }
 
@@ -306,6 +312,17 @@ function buildFields(type, department, targetDepartment, data, userId, username)
     return [
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '📸 Скриншот планшета', value: data.screenshot || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'reinstatement') {
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '📌 Ранг на момент увольнения', value: data.rankAtDismissal || 'Не указан', inline: false },
+      { name: '📸 Доказательство ранга', value: data.rankProof || 'Не указано', inline: false },
+      { name: '⚠️ Уволен после Ban/Warn', value: data.wasWarned === 'yes' ? '✅ Да' : '❌ Нет', inline: false },
+      ...(data.wasWarned === 'yes' ? [{ name: '📄 Скрин одобрения State Fractions', value: data.stateFractionsProof || 'Не указано', inline: false }] : []),
       ...baseFields
     ];
   }

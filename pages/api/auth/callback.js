@@ -1,3 +1,4 @@
+// ПРАВИЛЬНЫЙ ПУТЬ: поднимаемся на 3 уровня
 import { createToken, getDiscordToken, getDiscordUser } from '../../../lib/discord';
 
 export default async function handler(req, res) {

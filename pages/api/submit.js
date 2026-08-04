@@ -1,8 +1,8 @@
 import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { containsBadWords, findBadWord, findAllBadWords } from '../../lib/badwords';
+import { checkSpam } from '../../lib/antispam';
 
-// ===== СПИСОК ВСЕХ ОТДЕЛОВ С ВЕБХУКАМИ И РОЛЯМИ =====
 const DEPARTMENTS = {
   'ib': {
     name: 'IB (Intelligence Branch)',
@@ -83,7 +83,6 @@ const DEPARTMENTS = {
   }
 };
 
-// ===== ВЕБХУКИ ДЛЯ ПЕРЕВОДОВ (ПО ОТДЕЛАМ, БЕЗ IB И TRAINEE) =====
 const TRANSFER_WEBHOOKS = {
   'cid': process.env.WEBHOOK_TRANSFER_CID,
   'fa': process.env.WEBHOOK_TRANSFER_FA,
@@ -96,17 +95,14 @@ const TRANSFER_WEBHOOKS = {
   'nsb': process.env.WEBHOOK_TRANSFER_NSB
 };
 
-// ===== ВЕБХУКИ ДЛЯ РАЗНЫХ ТИПОВ ЗАЯВОК =====
 const webhooks = {
   promotion: process.env.WEBHOOK_PROMOTION,
   highrank: process.env.WEBHOOK_HIGH_RANK_REPORT,
   resignation: process.env.WEBHOOK_RESIGNATION
 };
 
-// ===== ОТПРАВКА В DISCORD С ПОВТОРНЫМИ ПОПЫТКАМИ =====
 async function sendToDiscord(webhookUrl, data, retries = 3) {
   const safeWebhook = webhookUrl.replace('discord.com', 'discordapp.com');
-  
   let lastError = null;
   
   for (let i = 0; i < retries; i++) {
@@ -131,29 +127,18 @@ async function sendToDiscord(webhookUrl, data, retries = 3) {
       }
       
       const errorText = await response.text();
-      console.error(`❌ Ошибка Discord: ${response.status} - ${errorText}`);
-      return { 
-        success: false, 
-        status: response.status, 
-        error: errorText || `HTTP ${response.status}` 
-      };
-      
+      return { success: false, status: response.status, error: errorText || `HTTP ${response.status}` };
     } catch (error) {
       lastError = error;
       console.error(`❌ Попытка ${i + 1}/${retries} не удалась:`, error.message);
-      
       if (i < retries - 1) {
         const waitTime = 1000 * (i + 1);
-        console.log(`⏳ Повтор через ${waitTime}мс...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
   }
   
-  return { 
-    success: false, 
-    error: lastError ? lastError.message : 'Неизвестная ошибка' 
-  };
+  return { success: false, error: lastError ? lastError.message : 'Неизвестная ошибка' };
 }
 
 export default async function handler(req, res) {
@@ -168,22 +153,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // ===== ПРОВЕРКА ЧЕРНОГО СПИСКА =====
   if (isBlacklisted(user.id)) {
     return res.status(403).json({ 
       error: '⛔ Ваш доступ к системе заявок заблокирован. Обратитесь к администрации.' 
     });
   }
 
-  // ===== БЕЗОПАСНО: БЕРЁМ ДАННЫЕ ИЗ КУКИ, А НЕ ИЗ ЗАПРОСА =====
+  const spamCheck = checkSpam(user.id, user.username);
+  if (spamCheck.isSpam) {
+    return res.status(429).json({ error: spamCheck.message });
+  }
+
   const { type, department, targetDepartment, ...formData } = req.body;
   const userId = user.id;
   const username = user.username;
 
-  // ===== ПРОВЕРКА БАНВОРДОВ =====
-  const allText = Object.values(formData)
-    .filter(val => typeof val === 'string')
-    .join(' ');
+  const allText = Object.values(formData).filter(val => typeof val === 'string').join(' ');
   
   if (containsBadWords(allText)) {
     const foundWords = findAllBadWords(allText);
@@ -197,54 +182,38 @@ export default async function handler(req, res) {
     });
   }
 
-  // ===== ВЫБИРАЕМ ВЕБХУК И РОЛИ ДЛЯ ПИНГА =====
   let webhookUrl;
   let roleMentions = '';
 
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
-    if (!dept) {
-      return res.status(400).json({ error: 'Выберите корректный отдел для отчёта' });
-    }
+    if (!dept) return res.status(400).json({ error: 'Выберите корректный отдел для отчёта' });
     webhookUrl = dept.webhook;
-    if (!webhookUrl) {
-      return res.status(500).json({ error: `Вебхук для отдела "${dept.name}" не настроен на сервере` });
-    }
+    if (!webhookUrl) return res.status(500).json({ error: `Вебхук для отдела "${dept.name}" не настроен` });
     if (dept.roleId) roleMentions += `<@&${dept.roleId}> `;
     if (dept.roleId2) roleMentions += `<@&${dept.roleId2}>`;
   } else if (type === 'transfer') {
     const deptKey = targetDepartment;
-    if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) {
-      return res.status(400).json({ error: 'Некорректный отдел для перевода' });
-    }
+    if (!deptKey || !TRANSFER_WEBHOOKS[deptKey]) return res.status(400).json({ error: 'Некорректный отдел для перевода' });
     webhookUrl = TRANSFER_WEBHOOKS[deptKey];
-    if (!webhookUrl) {
-      return res.status(500).json({ error: `Вебхук для перевода в отдел "${targetDepartment}" не настроен на сервере` });
-    }
+    if (!webhookUrl) return res.status(500).json({ error: `Вебхук для перевода в отдел "${targetDepartment}" не настроен` });
     const deptInfo = DEPARTMENTS[targetDepartment];
     if (deptInfo && deptInfo.roleId) roleMentions += `<@&${deptInfo.roleId}> `;
     if (deptInfo && deptInfo.roleId2) roleMentions += `<@&${deptInfo.roleId2}>`;
   } else if (type === 'highrank') {
     webhookUrl = webhooks.highrank;
-    if (!webhookUrl) {
-      return res.status(500).json({ error: 'Вебхук для отчётов на повышение (Хай Ранги) не настроен на сервере' });
-    }
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для Хай Рангов не настроен' });
     roleMentions = '<@&1289343511354671125>';
   } else if (type === 'resignation') {
     webhookUrl = webhooks.resignation;
-    if (!webhookUrl) {
-      return res.status(500).json({ error: 'Вебхук для заявлений на увольнение не настроен на сервере' });
-    }
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для увольнений не настроен' });
     roleMentions = '<@&1274110499356934211>';
   } else {
     webhookUrl = webhooks.promotion;
-    if (!webhookUrl) {
-      return res.status(400).json({ error: 'Invalid form type' });
-    }
+    if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });
     roleMentions = '<@&1274110499356934211>';
   }
 
-  // ===== ФОРМИРУЕМ EMBED =====
   const embed = {
     title: getFormTitle(type, department, targetDepartment),
     color: getFormColor(type),
@@ -253,32 +222,25 @@ export default async function handler(req, res) {
       icon_url: `https://cdn.discordapp.com/avatars/${userId}/${user.avatar}.png`
     },
     fields: buildFields(type, department, targetDepartment, formData, userId, username),
-    footer: {
-      text: 'Majestic FIB Forms • ' + new Date().toLocaleDateString('ru-RU'),
-    },
+    footer: { text: 'Majestic FIB Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
 
   const content = roleMentions.trim() || undefined;
 
-  // ===== ОТПРАВЛЯЕМ В DISCORD =====
   const result = await sendToDiscord(webhookUrl, {
-    content: content,
+    content,
     embeds: [embed],
     username: 'Majestic FIB Forms',
     avatar_url: 'https://i.imgur.com/AfFp7pu.png'
   });
 
   if (result.success) {
-    console.log(`✅ Заявка успешно отправлена (${type})`);
     res.status(200).json({ success: true });
   } else {
-    console.error(`❌ Ошибка отправки заявки: ${result.error}`);
     res.status(500).json({ error: `Не удалось отправить заявку: ${result.error}` });
   }
 }
-
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 
 function getFormTitle(type, department, targetDepartment) {
   if (type === 'report') {
@@ -287,18 +249,15 @@ function getFormTitle(type, department, targetDepartment) {
   }
   if (type === 'transfer') {
     const deptNames = { 'cid': 'CID', 'fa': 'FA', 'hrt': 'HRT', 'atf': 'ATF', 'af': 'AF', 'ocu': 'OCU', 'dea': 'DEA', 'fna': 'FNA', 'nsb': 'NSB' };
-    const deptName = deptNames[targetDepartment] || 'Отдел';
-    return `🔄 Запрос на перевод в ${deptName}`;
+    return `🔄 Запрос на перевод в ${deptNames[targetDepartment] || 'Отдел'}`;
   }
   if (type === 'highrank') return '📈 Отчёт на повышение (Хай Ранги)';
   if (type === 'resignation') return '📋 Заявление на увольнение';
-  const titles = { promotion: '📈 Запрос на повышение' };
-  return titles[type] || 'Новая заявка';
+  return { promotion: '📈 Запрос на повышение' }[type] || 'Новая заявка';
 }
 
 function getFormColor(type) {
-  const colors = { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545 };
-  return colors[type] || 0x5865F2;
+  return { promotion: 0x4CAF50, transfer: 0x2196F3, report: 0xFF9800, highrank: 0xFF69B4, resignation: 0xDC3545 }[type] || 0x5865F2;
 }
 
 function buildFields(type, department, targetDepartment, data, userId, username) {
@@ -381,7 +340,6 @@ function buildFields(type, department, targetDepartment, data, userId, username)
   return [...baseFields, ...Object.entries(data).map(([key, value]) => ({ name: key, value: String(value) || 'Не указано', inline: false }))];
 }
 
-// ===== ОТПРАВКА УВЕДОМЛЕНИЯ О БАНВОРДЕ =====
 async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
   const webhookUrl = process.env.WEBHOOK_BANWORDS || process.env.WEBHOOK_LOGS;
   if (!webhookUrl) return;
@@ -391,10 +349,7 @@ async function sendBanWordAlert(user, username, badWords, fullText, type, req) {
   const embed = {
     title: '🚨 ОБНАРУЖЕН БАНВОРД',
     color: 0xFF0000,
-    author: {
-      name: username,
-      icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-    },
+    author: { name: username, icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` },
     fields: [
       { name: '👤 Пользователь', value: `<@${user.id}>`, inline: true },
       { name: '🆔 Discord ID', value: user.id, inline: true },

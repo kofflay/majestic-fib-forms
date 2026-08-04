@@ -78,6 +78,12 @@ export default function Dashboard() {
           <h3>Заявление на увольнение</h3>
           <p>Подать заявление на увольнение из FIB</p>
         </div>
+
+        <div className="card" onClick={() => router.push('/forms/reinstatement')}>
+          <div className="card-icon">🔄</div>
+          <h3>Восстановление в FIB</h3>
+          <p>Подать заявку на восстановление в FIB</p>
+        </div>
       </div>
 
       <style jsx>{`

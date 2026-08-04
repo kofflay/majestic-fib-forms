@@ -1,6 +1,10 @@
 import { verifyToken } from '../../lib/discord';
 
 export default function handler(req, res) {
+  // 👇 ПРОВЕРЯЕМ ВСЕ КУКИ
+  console.log('🍪 Все куки:', req.cookies);
+  
+  // 👇 ИЩЕМ ТОКЕН В КУКАХ (ищем и "token", и "_vercel_jwt" на всякий случай)
   const token = req.cookies.token || req.cookies._vercel_jwt;
   
   console.log('📌 Найден токен:', token ? `Есть (длина: ${token.length})` : 'НЕТ');

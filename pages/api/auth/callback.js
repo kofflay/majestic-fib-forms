@@ -23,10 +23,10 @@ export default async function handler(req, res) {
       discriminator: userData.discriminator || '0'
     });
 
-    console.log('✅ Токен создан, длина:', token.length); // 👈 ДЛЯ ЛОГОВ
+    console.log('✅ Токен создан, длина:', token.length);
 
-    // 4. СОХРАНЯЕМ КУКУ (ОЧЕНЬ ВАЖНО!)
-    res.setHeader('Set-Cookie', `_vercel_jwt=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
+    // 4. СОХРАНЯЕМ КУКУ
+    res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
     
     // 5. Перенаправляем на дашборд
     res.redirect('/dashboard');

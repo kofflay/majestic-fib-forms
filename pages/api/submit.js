@@ -147,7 +147,7 @@ export default async function handler(req, res) {
   }
 
   // 🔒 Проверка бана
-  if (isBlacklisted(user.id)) {
+  if (await isBlacklisted(user.id)) {
     return res.status(403).json({ 
       error: '⛔ Ваш доступ к системе заявок заблокирован. Обратитесь к администрации.' 
     });
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
     const foundWord = findBadWord(allText);
     
     await sendBanWordAlert(user, foundWord || foundWords.join(', '), allText, type, req);
-    addToBlacklist(user.id, user.username, `Банворд: ${foundWord || foundWords.join(', ')}`);
+    await addToBlacklist(user.id, user.username, `Банворд: ${foundWord || foundWords.join(', ')}`);
     
     return res.status(403).json({ 
       error: `⛔ Ваша заявка содержит запрещённое слово. Доступ к системе заблокирован.` 

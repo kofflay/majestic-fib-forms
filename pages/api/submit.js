@@ -2,6 +2,7 @@ import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { containsBadWords, findBadWord, findAllBadWords } from '../../lib/badwords';
 import { checkSpam } from '../../lib/antispam';
+import { kv } from '@vercel/kv';
 
 const DEPARTMENTS = {
   'ib': {
@@ -138,7 +139,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 🔒 Данные из куки
   const token = req.cookies.token;
   const user = verifyToken(token);
   
@@ -146,17 +146,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // 🔒 IP (должен быть объявлен ДО использования!)
   const ip = req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
 
-  // 🔒 Проверка бана
   if (await isBlacklisted(user.id, ip)) {
     return res.status(403).json({ 
       error: '⛔ Ваш доступ к системе заявок заблокирован. Обратитесь к администрации.' 
     });
   }
 
-  // 🔒 Проверка спама
   const spamCheck = await checkSpam(user.id, ip);
 
   if (spamCheck.isSpam) {
@@ -166,10 +163,8 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: spamCheck.message });
   }
 
-  // 📦 Данные формы
   const { type, department, targetDepartment, ...formData } = req.body;
 
-  // 🔒 Проверка банвордов
   const allText = Object.values(formData).filter(val => typeof val === 'string').join(' ');
   
   if (containsBadWords(allText)) {
@@ -184,7 +179,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // 🔗 Определяем вебхук
   let webhookUrl;
   let roleMentions = '';
 
@@ -217,7 +211,13 @@ export default async function handler(req, res) {
     roleMentions = '<@&1274110499356934211>';
   }
 
-  // 📧 Формируем embed
+  // 🔒 Финальная проверка IP перед отправкой
+  const ipKey = `fib:spam:ip:${ip}`;
+  const ipCount = await kv.get(ipKey);
+  if (ipCount && parseInt(ipCount) >= 5) {
+    return res.status(429).json({ error: '🚫 С вашего IP слишком много заявок. Отправка заблокирована.' });
+  }
+
   const embed = {
     title: getFormTitle(type, department, targetDepartment),
     color: getFormColor(type),

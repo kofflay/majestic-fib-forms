@@ -14,7 +14,7 @@ export default function Home() {
       if (router.query.error === 'new_account') {
         const days = router.query.days || '0';
         const min = router.query.min || '90';
-        setError(`❌ Ваш Discord аккаунт создан ${days} дней назад. Требуется минимум ${min} дней.`);
+        setError(`❌ Ваш Discord аккаунт создан ${days} дней назад. Требуется минимум 14 дней.`);
       } else if (router.query.error === 'access_denied') {
         setError('Вы отклонили авторизацию.');
       } else {

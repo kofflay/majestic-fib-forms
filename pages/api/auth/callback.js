@@ -21,7 +21,12 @@ export default async function handler(req, res) {
 
     console.log('✅ Токен создан, длина:', token.length);
 
+    // 👇 ВАЖНО: сохраняем куку с именем "token" (не "_vercel_jwt")
     res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
+    
+    // 👇 ПРОВЕРКА: выводим в лог, что кука установлена
+    console.log('🍪 Кука token установлена');
+
     res.redirect('/dashboard');
     
   } catch (error) {

@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     console.log('✅ Токен создан, длина:', token.length); // 👈 ДЛЯ ЛОГОВ
 
     // 4. СОХРАНЯЕМ КУКУ (ОЧЕНЬ ВАЖНО!)
-    res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
+    res.setHeader('Set-Cookie', `_vercel_jwt=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
     
     // 5. Перенаправляем на дашборд
     res.redirect('/dashboard');

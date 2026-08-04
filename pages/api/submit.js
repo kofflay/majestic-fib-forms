@@ -154,10 +154,15 @@ export default async function handler(req, res) {
   }
 
   // 🔒 Проверка спама
-  const spamCheck = checkSpam(user.id);
-  if (spamCheck.isSpam) {
-    return res.status(429).json({ error: spamCheck.message });
+const ip = req.headers['x-vercel-forwarded-for'] || 'unknown';
+const spamCheck = await checkSpam(user.id, ip);
+
+if (spamCheck.isSpam) {
+  if (spamCheck.ban) {
+    await addToBlacklist(user.id, user.username, spamCheck.reason);
   }
+  return res.status(429).json({ error: spamCheck.message });
+}
 
   // 📦 Только данные формы, без userId/username
   const { type, department, targetDepartment, ...formData } = req.body;

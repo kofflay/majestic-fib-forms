@@ -11,7 +11,15 @@ export default function Home() {
 
   useEffect(() => {
     if (router.query.error) {
-      setError('Ошибка авторизации. Попробуйте снова.');
+      if (router.query.error === 'new_account') {
+        const days = router.query.days || '0';
+        const min = router.query.min || '90';
+        setError(`❌ Ваш Discord аккаунт создан ${days} дней назад. Требуется минимум ${min} дней.`);
+      } else if (router.query.error === 'access_denied') {
+        setError('Вы отклонили авторизацию.');
+      } else {
+        setError('Ошибка авторизации. Попробуйте снова.');
+      }
     }
     
     fetch('/api/me')
@@ -70,7 +78,8 @@ export default function Home() {
         {error && (
           <div style={{
             background: 'rgba(255, 0, 0, 0.1)', border: '1px solid rgba(255, 0, 0, 0.3)',
-            color: '#ff4444', padding: '10px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px'
+            color: '#ff4444', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px',
+            lineHeight: '1.5'
           }}>
             {error}
           </div>

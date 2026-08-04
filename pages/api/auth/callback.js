@@ -1,6 +1,7 @@
 import { createToken, getDiscordToken, getDiscordUser } from '../../../lib/discord';
 
 export default async function handler(req, res) {
+  // 1. Проверяем, есть ли код в URL
   const { code } = req.query;
   
   if (!code) {
@@ -9,13 +10,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Получаем токен доступа
+    // 2. Получаем токен доступа от Discord
     const tokenData = await getDiscordToken(code);
     
-    // 2. Получаем данные пользователя
+    // 3. Получаем данные пользователя
     const userData = await getDiscordUser(tokenData.access_token);
 
-    // 3. Создаём JWT-токен
+    // 4. Создаём JWT-токен для нашего сайта
     const token = createToken({
       id: userData.id,
       username: userData.username,
@@ -25,10 +26,10 @@ export default async function handler(req, res) {
 
     console.log('✅ Токен создан, длина:', token.length);
 
-    // 4. СОХРАНЯЕМ КУКУ
+    // 5. Сохраняем куку
     res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
     
-    // 5. Перенаправляем на дашборд
+    // 6. Перенаправляем на дашборд
     res.redirect('/dashboard');
     
   } catch (error) {

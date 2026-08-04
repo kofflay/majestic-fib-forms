@@ -1,4 +1,4 @@
-import { getDiscordToken, getDiscordUser, createToken } from '../../lib/discord';
+import { getDiscordToken, getDiscordUser, createToken, isAccountOldEnough } from '../../lib/discord';
 
 export default async function handler(req, res) {
   const { code, error } = req.query;
@@ -9,6 +9,13 @@ export default async function handler(req, res) {
   try {
     const tokenData = await getDiscordToken(code);
     const user = await getDiscordUser(tokenData.access_token);
+    
+    const accountCheck = isAccountOldEnough(user, 90);
+    
+    if (!accountCheck.oldEnough) {
+      return res.redirect(`/?error=new_account&days=${accountCheck.ageDays}&min=90`);
+    }
+    
     const jwtToken = createToken(user);
     
     res.setHeader('Set-Cookie', `token=${jwtToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`);

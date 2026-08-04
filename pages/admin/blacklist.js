@@ -1,0 +1,39 @@
+import { verifyToken } from '../../../lib/discord';
+import { getBlacklist, removeFromBlacklist, addToBlacklist } from '../../../lib/blacklist';
+
+// Впиши свой Discord ID
+const ADMINS = ['ТВОЙ_DISCORD_ID'];
+
+export default async function handler(req, res) {
+  const token = req.cookies.token;
+  const user = verifyToken(token);
+  
+  if (!user || !ADMINS.includes(user.id)) {
+    return res.status(403).json({ error: 'Нет доступа' });
+  }
+
+  // GET — список банов
+  if (req.method === 'GET') {
+    const list = await getBlacklist();
+    return res.status(200).json({ blacklist: list });
+  }
+
+  // POST — забанить/разбанить
+  if (req.method === 'POST') {
+    const { action, userId, username, reason } = req.body;
+    
+    if (action === 'unban') {
+      await removeFromBlacklist(userId);
+      return res.status(200).json({ success: true, message: 'Разбанен' });
+    }
+    
+    if (action === 'ban') {
+      await addToBlacklist(userId, username || 'Неизвестный', reason || 'Ручной бан');
+      return res.status(200).json({ success: true, message: 'Забанен' });
+    }
+    
+    return res.status(400).json({ error: 'Неизвестное действие' });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}

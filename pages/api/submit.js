@@ -207,14 +207,14 @@ export default async function handler(req, res) {
     webhookUrl = webhooks.resignation;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для увольнений не настроен' });
     roleMentions = '<@&1274110499356934211>';
-  } else if (type === 'reinstatement') {
+    } else if (type === 'reinstatement') {
     webhookUrl = webhooks.reinstatement;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для восстановления не настроен' });
-    roleMentions = '<@&1274110499356934211>';
-  } else if (type === 'transfer-to-fib') {
+    roleMentions = '<@&1274110499377778755> <@&1289343511354671125>';
+   } else if (type === 'transfer-to-fib') {
     webhookUrl = webhooks['transfer-to-fib'];
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для перевода в FIB не настроен' });
-    roleMentions = '<@&1274110499356934211>';
+    roleMentions = '<@&1274110499377778755> <@&1289343511354671125>';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });

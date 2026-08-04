@@ -1,4 +1,3 @@
-// ПРАВИЛЬНЫЙ ПУТЬ: поднимаемся на 3 уровня
 import { createToken, getDiscordToken, getDiscordUser } from '../../../lib/discord';
 
 export default async function handler(req, res) {
@@ -16,7 +15,7 @@ export default async function handler(req, res) {
     // 2. Получаем данные пользователя
     const userData = await getDiscordUser(tokenData.access_token);
 
-    // 3. Создаём JWT-токен для нашего сайта
+    // 3. Создаём JWT-токен
     const token = createToken({
       id: userData.id,
       username: userData.username,
@@ -24,8 +23,12 @@ export default async function handler(req, res) {
       discriminator: userData.discriminator || '0'
     });
 
-    // 4. Сохраняем в cookies и перенаправляем
+    console.log('✅ Токен создан, длина:', token.length); // 👈 ДЛЯ ЛОГОВ
+
+    // 4. СОХРАНЯЕМ КУКУ (ОЧЕНЬ ВАЖНО!)
     res.setHeader('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
+    
+    // 5. Перенаправляем на дашборд
     res.redirect('/dashboard');
     
   } catch (error) {

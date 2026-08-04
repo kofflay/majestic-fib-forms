@@ -1,11 +1,8 @@
 import { verifyToken } from '../../lib/discord';
 
 export default function handler(req, res) {
-  // 1. Смотрим, что пришло в куках
-  console.log('🔍 Все куки:', req.cookies);
-  
-  // 2. Пытаемся достать токен
-  const token = req.cookies._vercel_jwt || req.cookies.token;
+  // 1. Проверяем, есть ли кука
+  const token = req.cookies.token || req.cookies._vercel_jwt;
   
   console.log('📌 Найден токен:', token ? `Есть (длина: ${token.length})` : 'НЕТ');
 
@@ -14,7 +11,7 @@ export default function handler(req, res) {
     return res.status(401).json({ error: 'No token in cookies' });
   }
 
-  // 3. Проверяем токен
+  // 2. Проверяем токен
   const user = verifyToken(token);
   
   if (!user) {

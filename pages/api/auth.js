@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const tokenData = await getDiscordToken(code);
     const user = await getDiscordUser(tokenData.access_token);
     
-    const accountCheck = isAccountOldEnough(user, 90);
+    const accountCheck = isAccountOldEnough(user, 14);
     
     if (!accountCheck.oldEnough) {
       return res.redirect(`/?error=new_account&days=${accountCheck.ageDays}&min=90`);

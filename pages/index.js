@@ -58,10 +58,6 @@ export default function Home() {
           font-size: 16px;
         }
         .login-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
           width: 100%;
           padding: 14px;
           background: #5865F2;

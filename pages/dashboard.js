@@ -73,12 +73,6 @@ export default function Dashboard() {
           <p>Повышение для старшего состава</p>
         </div>
 
-        <div className="card" onClick={() => router.push('/forms/transfer-to-fib')}>
-          <div className="card-icon">🏛️</div>
-          <h3>Перевод в FIB</h3>
-          <p>Подать заявку на перевод в FIB из другой организации</p>
-        </div>
-
         <div className="card" onClick={() => router.push('/forms/resignation')}>
           <div className="card-icon">🚪</div>
           <h3>Заявление на увольнение</h3>
@@ -89,6 +83,12 @@ export default function Dashboard() {
           <div className="card-icon">🔄</div>
           <h3>Восстановление в FIB</h3>
           <p>Подать заявку на восстановление в FIB</p>
+        </div>
+
+        <div className="card" onClick={() => router.push('/forms/transfer-to-fib')}>
+          <div className="card-icon">🏛️</div>
+          <h3>Перевод в FIB</h3>
+          <p>Подать заявку на перевод в FIB из другой организации</p>
         </div>
       </div>
 

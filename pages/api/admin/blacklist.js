@@ -2,7 +2,7 @@ import { verifyToken } from '../../../lib/discord';
 import { getBlacklist, removeFromBlacklist, addToBlacklist } from '../../../lib/blacklist';
 
 // Впиши свой Discord ID
-const ADMINS = ['ТВОЙ_DISCORD_ID'];
+const ADMINS = ['200102286473691139'];
 
 export default async function handler(req, res) {
   const token = req.cookies.token;

@@ -55,6 +55,12 @@ export default function Dashboard() {
           <p>Подать запрос на повышение</p>
         </div>
 
+          <div className="card" onClick={() => router.push('/forms/weapon-request')}>
+          <div className="card-icon">🔫</div>
+          <h3>Запрос на спец вооружение</h3>
+          <p>Подать запрос на получение спец вооружения</p>
+        </div>
+
         <div className="card" onClick={() => router.push('/forms/transfer')}>
           <div className="card-icon">🔄</div>
           <h3>Перевод в отдел</h3>

@@ -131,6 +131,19 @@ export default function LeaveForm() {
           </button>
         </form>
       </div>
+
+      {/* 👇 ФИКС ДЛЯ SELECT (чтобы текст был виден) */}
+      <style jsx>{`
+        select option {
+          background-color: #1a1a3e !important;
+          color: #ffffff !important;
+          padding: 8px 12px;
+        }
+        select {
+          background-color: #1a1a3e !important;
+          color: #ffffff !important;
+        }
+      `}</style>
     </div>
   );
 }

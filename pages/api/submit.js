@@ -250,7 +250,7 @@ export default async function handler(req, res) {
   } else if (type === 'weapon-request') {
     webhookUrl = webhooks['weapon-request'];
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для запроса вооружения не настроен' });
-    roleMentions = '<@&1274110499356934211>';
+    roleMentions = '<@&1289343511354671125>';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });

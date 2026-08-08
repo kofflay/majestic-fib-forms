@@ -1,5 +1,3 @@
-переделай этот код на то че надо 
-
 import { verifyToken } from '../../lib/discord';
 import { isBlacklisted, addToBlacklist } from '../../lib/blacklist';
 import { containsBadWords, findBadWord, findAllBadWords } from '../../lib/badwords';

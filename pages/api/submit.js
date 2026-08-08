@@ -101,7 +101,8 @@ const webhooks = {
   highrank: process.env.WEBHOOK_HIGH_RANK_REPORT,
   resignation: process.env.WEBHOOK_RESIGNATION,
   reinstatement: process.env.WEBHOOK_REINSTATEMENT,
-  'transfer-to-fib': process.env.WEBHOOK_TRANSFER_TO_FIB
+  'transfer-to-fib': process.env.WEBHOOK_TRANSFER_TO_FIB,
+  hiring: process.env.WEBHOOK_HIRING
 };
 
 async function sendToDiscord(webhookUrl, data, retries = 3) {
@@ -140,6 +141,32 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // 🔒 Глобальный лимит запросов
+  const GLOBAL_KEY = 'fib:global:requests';
+  const GLOBAL_LOCK_KEY = 'fib:global:locked';
+  
+  const isLocked = await kv.get(GLOBAL_LOCK_KEY);
+  if (isLocked) {
+    const ttl = await kv.ttl(GLOBAL_LOCK_KEY);
+    const minutes = Math.ceil((ttl || 3600) / 60);
+    return res.status(429).json({ 
+      error: `🚫 Сайт временно недоступен. Слишком много запросов. Подождите ${minutes} минут.` 
+    });
+  }
+  
+  const globalCount = await kv.get(GLOBAL_KEY);
+  const newGlobalCount = globalCount ? parseInt(globalCount) + 1 : 1;
+  
+  if (newGlobalCount > 5) {
+    await kv.set(GLOBAL_LOCK_KEY, '1', { ex: 3600 });
+    await kv.del(GLOBAL_KEY);
+    return res.status(429).json({ 
+      error: '🚫 Сайт временно заблокирован на 1 час из-за большого количества запросов.' 
+    });
+  }
+  
+  await kv.set(GLOBAL_KEY, newGlobalCount, { ex: 20 });
 
   const token = req.cookies.token;
   const user = verifyToken(token);
@@ -207,14 +234,18 @@ export default async function handler(req, res) {
     webhookUrl = webhooks.resignation;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для увольнений не настроен' });
     roleMentions = '<@&1274110499356934211>';
-    } else if (type === 'reinstatement') {
+  } else if (type === 'reinstatement') {
     webhookUrl = webhooks.reinstatement;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для восстановления не настроен' });
     roleMentions = '<@&1274110499377778755> <@&1289343511354671125>';
-   } else if (type === 'transfer-to-fib') {
+  } else if (type === 'transfer-to-fib') {
     webhookUrl = webhooks['transfer-to-fib'];
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для перевода в FIB не настроен' });
     roleMentions = '<@&1274110499377778755> <@&1289343511354671125>';
+  } else if (type === 'hiring') {
+    webhookUrl = webhooks.hiring;
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для трудоустройства не настроен' });
+    roleMentions = '<@&1274110499377778755>';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });
@@ -269,6 +300,7 @@ function getFormTitle(type, department, targetDepartment) {
   if (type === 'resignation') return '📋 Заявление на увольнение';
   if (type === 'reinstatement') return '🔄 Восстановление в FIB';
   if (type === 'transfer-to-fib') return '🏛️ Перевод в FIB';
+  if (type === 'hiring') return '📝 Трудоустройство в FIB';
   return '📈 Запрос на повышение';
 }
 
@@ -280,7 +312,8 @@ function getFormColor(type) {
     highrank: 0xFF69B4, 
     resignation: 0xDC3545, 
     reinstatement: 0x9C27B0, 
-    'transfer-to-fib': 0x00BCD4 
+    'transfer-to-fib': 0x00BCD4,
+    hiring: 0x4CAF50
   };
   return colors[type] || 0x5865F2;
 }
@@ -346,6 +379,19 @@ function buildFields(type, department, targetDepartment, data, userId, username)
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
       { name: '✅ Одобрение от начальства', value: data.approvalProof || 'Не указано', inline: false },
       { name: '📸 Доказательство ранга', value: data.rankProof || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'hiring') {
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '🎂 Возраст (RP)', value: data.age || 'Не указан', inline: false },
+      { name: '💼 Опыт работы', value: data.experience || 'Не указан', inline: false },
+      { name: '📚 Знание законов RP', value: (data.lawKnowledge || '?') + '/10', inline: false },
+      { name: '🪪 Скриншот паспорта', value: data.passport || 'Не указано', inline: false },
+      { name: '🎖️ Военный билет', value: data.militaryId || 'Не указано', inline: false },
+      { name: '🏥 Мед. справки', value: data.medical || 'Не указано', inline: false },
       ...baseFields
     ];
   }

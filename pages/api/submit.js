@@ -102,7 +102,8 @@ const webhooks = {
   resignation: process.env.WEBHOOK_RESIGNATION,
   reinstatement: process.env.WEBHOOK_REINSTATEMENT,
   'transfer-to-fib': process.env.WEBHOOK_TRANSFER_TO_FIB,
-  hiring: process.env.WEBHOOK_HIRING
+  hiring: process.env.WEBHOOK_HIRING,
+  'weapon-request': process.env.WEBHOOK_WEAPON_REQUEST
 };
 
 async function sendToDiscord(webhookUrl, data, retries = 3) {
@@ -246,6 +247,10 @@ export default async function handler(req, res) {
     webhookUrl = webhooks.hiring;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для трудоустройства не настроен' });
     roleMentions = '<@&1274110499377778755>';
+  } else if (type === 'weapon-request') {
+    webhookUrl = webhooks['weapon-request'];
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для запроса вооружения не настроен' });
+    roleMentions = '<@&1274110499356934211>';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });
@@ -301,6 +306,7 @@ function getFormTitle(type, department, targetDepartment) {
   if (type === 'reinstatement') return '🔄 Восстановление в FIB';
   if (type === 'transfer-to-fib') return '🏛️ Перевод в FIB';
   if (type === 'hiring') return '📝 Трудоустройство в FIB';
+  if (type === 'weapon-request') return '🔫 Запрос на спец вооружение';
   return '📈 Запрос на повышение';
 }
 
@@ -313,7 +319,8 @@ function getFormColor(type) {
     resignation: 0xDC3545, 
     reinstatement: 0x9C27B0, 
     'transfer-to-fib': 0x00BCD4,
-    hiring: 0x4CAF50
+    hiring: 0x4CAF50,
+    'weapon-request': 0xFF5722
   };
   return colors[type] || 0x5865F2;
 }
@@ -392,6 +399,16 @@ function buildFields(type, department, targetDepartment, data, userId, username)
       { name: '🪪 Скриншот паспорта', value: data.passport || 'Не указано', inline: false },
       { name: '🎖️ Военный билет', value: data.militaryId || 'Не указано', inline: false },
       { name: '🏥 Мед. справки', value: data.medical || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'weapon-request') {
+    return [
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '🏢 Отдел', value: data.department || 'Не указан', inline: false },
+      { name: '📌 Ранг', value: data.rank || 'Не указан', inline: false },
+      { name: '🔫 Оружие', value: data.weapon || 'Не указано', inline: false },
       ...baseFields
     ];
   }

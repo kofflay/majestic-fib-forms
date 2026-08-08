@@ -67,6 +67,12 @@ export default function Dashboard() {
           <p>Подать отчёт о повышении для своего отдела</p>
         </div>
 
+        <div className="card" onClick={() => router.push('/forms/hiring')}>
+          <div className="card-icon">📝</div>
+          <h3>Трудоустройство в FIB</h3>
+          <p>Подать заявку на вступление в FIB</p>
+        </div>
+              
         <div className="card" onClick={() => router.push('/forms/high-rank-report')}>
           <div className="card-icon">🌟</div>
           <h3>Отчёт на повышение (Хай Ранги)</h3>

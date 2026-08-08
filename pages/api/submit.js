@@ -216,7 +216,6 @@ export default async function handler(req, res) {
   let webhookUrl;
   let roleMentions = '';
   let threadId = null;
-  let leaveDept = null;
 
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
@@ -260,8 +259,7 @@ export default async function handler(req, res) {
   } else if (type === 'leave') {
     webhookUrl = webhooks.leave;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для отпусков не настроен' });
-    leaveDept = formData.department;
-    const deptInfo = DEPARTMENTS[leaveDept];
+    const deptInfo = DEPARTMENTS[formData.department];
     if (deptInfo?.roleId) roleMentions += `<@&${deptInfo.roleId}> `;
     if (deptInfo?.roleId2) roleMentions += `<@&${deptInfo.roleId2}>`;
     threadId = leaveType === 'ooc' ? '1479656377994580060' : '1479695882302787624';
@@ -285,7 +283,7 @@ export default async function handler(req, res) {
       name: user.username,
       icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
     },
-    fields: buildFields(type, department, targetDepartment, leaveDept, formData, leaveType, user.id, user.username),
+    fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id, user.username),
     footer: { text: 'Majestic FIB Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
@@ -342,7 +340,7 @@ function getFormColor(type) {
   return colors[type] || 0x5865F2;
 }
 
-function buildFields(type, department, targetDepartment, leaveDept, data, leaveType, userId, username) {
+function buildFields(type, department, targetDepartment, data, leaveType, userId, username) {
   const baseFields = [
     { name: '👤 Отправитель', value: `<@${userId}>`, inline: true },
     { name: '🆔 Discord ID', value: userId, inline: true }
@@ -431,11 +429,10 @@ function buildFields(type, department, targetDepartment, leaveDept, data, leaveT
   }
 
   if (type === 'leave') {
-    const deptInfo = DEPARTMENTS[leaveDept];
     return [
       { name: '📋 Тип отпуска', value: leaveType === 'ooc' ? '🌍 OOC' : '🎮 IC', inline: false },
       { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
-      { name: '🏢 Отдел', value: deptInfo ? deptInfo.emoji + ' ' + deptInfo.name : (leaveDept || 'Не указан'), inline: false },
+      { name: '🏢 Отдел', value: data.department || 'Не указан', inline: false },
       { name: '📝 Причина', value: data.reason || 'Не указано', inline: false },
       { name: '📅 Дата начала', value: data.startDate || 'Не указано', inline: true },
       { name: '📅 Дата окончания', value: data.endDate || 'Не указано', inline: true },

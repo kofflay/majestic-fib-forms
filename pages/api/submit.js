@@ -103,18 +103,22 @@ const webhooks = {
   reinstatement: process.env.WEBHOOK_REINSTATEMENT,
   'transfer-to-fib': process.env.WEBHOOK_TRANSFER_TO_FIB,
   hiring: process.env.WEBHOOK_HIRING,
-  'weapon-request': process.env.WEBHOOK_WEAPON_REQUEST
+  'weapon-request': process.env.WEBHOOK_WEAPON_REQUEST,
+  leave: process.env.WEBHOOK_LEAVE
 };
 
 async function sendToDiscord(webhookUrl, data, retries = 3) {
   let lastError = null;
   
+  const url = data.thread_id ? `${webhookUrl}?thread_id=${data.thread_id}` : webhookUrl;
+  const { thread_id, ...payload } = data;
+  
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) return { success: true, status: response.status };
@@ -193,7 +197,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: spamCheck.message });
   }
 
-  const { type, department, targetDepartment, ...formData } = req.body;
+  const { type, department, targetDepartment, leaveType, ...formData } = req.body;
 
   const allText = Object.values(formData).filter(val => typeof val === 'string').join(' ');
   
@@ -211,6 +215,7 @@ export default async function handler(req, res) {
 
   let webhookUrl;
   let roleMentions = '';
+  let threadId = null;
 
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
@@ -250,7 +255,14 @@ export default async function handler(req, res) {
   } else if (type === 'weapon-request') {
     webhookUrl = webhooks['weapon-request'];
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для запроса вооружения не настроен' });
-    roleMentions = '<@&1289343511354671125>';
+    roleMentions = '<@&1274110499356934211>';
+  } else if (type === 'leave') {
+    webhookUrl = webhooks.leave;
+    if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для отпусков не настроен' });
+    const deptInfo = DEPARTMENTS[formData.department];
+    if (deptInfo?.roleId) roleMentions += `<@&${deptInfo.roleId}> `;
+    if (deptInfo?.roleId2) roleMentions += `<@&${deptInfo.roleId2}>`;
+    threadId = leaveType === 'ooc' ? '1479656377994580060' : '1479695882302787624';
   } else {
     webhookUrl = webhooks.promotion;
     if (!webhookUrl) return res.status(400).json({ error: 'Invalid form type' });
@@ -265,13 +277,13 @@ export default async function handler(req, res) {
   }
 
   const embed = {
-    title: getFormTitle(type, department, targetDepartment),
+    title: getFormTitle(type, department, targetDepartment, leaveType),
     color: getFormColor(type),
     author: {
       name: user.username,
       icon_url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
     },
-    fields: buildFields(type, department, targetDepartment, formData, user.id, user.username),
+    fields: buildFields(type, department, targetDepartment, formData, leaveType, user.id, user.username),
     footer: { text: 'Majestic FIB Forms • ' + new Date().toLocaleDateString('ru-RU') },
     timestamp: new Date().toISOString()
   };
@@ -282,7 +294,8 @@ export default async function handler(req, res) {
     content,
     embeds: [embed],
     username: 'Majestic FIB Forms',
-    avatar_url: 'https://i.imgur.com/AfFp7pu.png'
+    avatar_url: 'https://i.imgur.com/AfFp7pu.png',
+    ...(threadId ? { thread_id: threadId } : {})
   });
 
   if (result.success) {
@@ -292,7 +305,7 @@ export default async function handler(req, res) {
   }
 }
 
-function getFormTitle(type, department, targetDepartment) {
+function getFormTitle(type, department, targetDepartment, leaveType) {
   if (type === 'report') {
     const dept = DEPARTMENTS[department];
     return `📋 Отчёт о повышении • ${dept ? dept.emoji + ' ' + dept.name : 'Отдел'}`;
@@ -307,6 +320,7 @@ function getFormTitle(type, department, targetDepartment) {
   if (type === 'transfer-to-fib') return '🏛️ Перевод в FIB';
   if (type === 'hiring') return '📝 Трудоустройство в FIB';
   if (type === 'weapon-request') return '🔫 Запрос на спец вооружение';
+  if (type === 'leave') return `🏖️ ${leaveType === 'ooc' ? 'OOC' : 'IC'} Отпуск`;
   return '📈 Запрос на повышение';
 }
 
@@ -320,12 +334,13 @@ function getFormColor(type) {
     reinstatement: 0x9C27B0, 
     'transfer-to-fib': 0x00BCD4,
     hiring: 0x4CAF50,
-    'weapon-request': 0xFF5722
+    'weapon-request': 0xFF5722,
+    leave: 0x00BCD4
   };
   return colors[type] || 0x5865F2;
 }
 
-function buildFields(type, department, targetDepartment, data, userId, username) {
+function buildFields(type, department, targetDepartment, data, leaveType, userId, username) {
   const baseFields = [
     { name: '👤 Отправитель', value: `<@${userId}>`, inline: true },
     { name: '🆔 Discord ID', value: userId, inline: true }
@@ -409,6 +424,18 @@ function buildFields(type, department, targetDepartment, data, userId, username)
       { name: '🏢 Отдел', value: data.department || 'Не указан', inline: false },
       { name: '📌 Ранг', value: data.rank || 'Не указан', inline: false },
       { name: '🔫 Оружие', value: data.weapon || 'Не указано', inline: false },
+      ...baseFields
+    ];
+  }
+
+  if (type === 'leave') {
+    return [
+      { name: '📋 Тип отпуска', value: leaveType === 'ooc' ? '🌍 OOC' : '🎮 IC', inline: false },
+      { name: '👤 Имя Фамилия + Статик', value: data.fullName || 'Не указано', inline: false },
+      { name: '🏢 Отдел', value: data.department || 'Не указан', inline: false },
+      { name: '📝 Причина', value: data.reason || 'Не указано', inline: false },
+      { name: '📅 Дата начала', value: data.startDate || 'Не указано', inline: true },
+      { name: '📅 Дата окончания', value: data.endDate || 'Не указано', inline: true },
       ...baseFields
     ];
   }

@@ -68,18 +68,22 @@ export default function LeaveForm() {
     setSubmitting(true);
     
     try {
+      const body = {
+        type: 'leave',
+        leaveType: formData.leaveType,
+        fullName: formData.fullName,
+        department: formData.department,
+        reason: formData.reason,
+        startDate: formData.startDate,
+        endDate: formData.endDate
+      };
+      
+      console.log('Отправка формы leave:', body);
+      
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'leave',
-          leaveType: formData.leaveType,
-          fullName: formData.fullName,
-          department: formData.department,
-          reason: formData.reason,
-          startDate: formData.startDate,
-          endDate: formData.endDate
-        })
+        body: JSON.stringify(body)
       });
 
       if (res.ok) {

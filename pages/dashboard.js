@@ -97,6 +97,12 @@ export default function Dashboard() {
           <p>Подать заявку на восстановление в FIB</p>
         </div>
 
+          <div className="card" onClick={() => router.push('/forms/leave')}>
+          <div className="card-icon">🏖️</div>
+          <h3>Заявление на отпуск</h3>
+          <p>Подать заявление на OOC или IC отпуск</p>
+        </div>
+
         <div className="card" onClick={() => router.push('/forms/transfer-to-fib')}>
           <div className="card-icon">🏛️</div>
           <h3>Перевод в FIB</h3>

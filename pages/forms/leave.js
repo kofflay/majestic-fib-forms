@@ -36,315 +36,101 @@ export default function LeaveForm() {
 
   useEffect(() => {
     fetch('/api/me')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.user) {
-          router.push('/');
-          return;
-        }
-        setUser(data.user);
+      .then(r => r.json())
+      .then(d => {
+        if (!d.user) { router.push('/'); return; }
+        setUser(d.user);
         setLoading(false);
       });
   }, []);
 
-  const isFormValid = () => {
-    if (!formData.leaveType) return false;
-    if (!formData.fullName.trim()) return false;
-    if (!formData.department) return false;
-    if (!formData.reason.trim()) return false;
-    if (!formData.startDate.trim()) return false;
-    if (!formData.endDate.trim()) return false;
-    return true;
+  const isValid = () => {
+    return formData.leaveType
+      && formData.fullName.trim()
+      && formData.department
+      && formData.reason.trim()
+      && formData.startDate.trim()
+      && formData.endDate.trim();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!isFormValid()) {
-      alert('❌ Пожалуйста, заполните все обязательные поля!');
-      return;
-    }
-
+    if (!isValid()) { alert('Заполните все поля!'); return; }
     setSubmitting(true);
-    
     try {
-      const body = {
-        type: 'leave',
-        leaveType: formData.leaveType,
-        fullName: formData.fullName,
-        department: formData.department,
-        reason: formData.reason,
-        startDate: formData.startDate,
-        endDate: formData.endDate
-      };
-      
-      console.log('Отправка формы leave:', body);
-      
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          type: 'leave',
+          leaveType: formData.leaveType,
+          fullName: formData.fullName,
+          department: formData.department,
+          reason: formData.reason,
+          startDate: formData.startDate,
+          endDate: formData.endDate
+        })
       });
-
-      if (res.ok) {
-        alert('✅ Заявка на отпуск успешно отправлена!');
-        router.push('/dashboard');
-      } else {
-        const error = await res.json();
-        throw new Error(error.error || 'Ошибка отправки');
-      }
-    } catch (error) {
-      alert('❌ Ошибка при отправке заявки: ' + error.message);
-    } finally {
-      setSubmitting(false);
-    }
+      if (res.ok) { alert('✅ Отправлено!'); router.push('/dashboard'); }
+      else { const err = await res.json(); throw new Error(err.error); }
+    } catch (e) { alert('❌ ' + e.message); }
+    finally { setSubmitting(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Загрузка...</p>
-      </div>
-    );
-  }
+  if (loading) return <div style={{ display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#0a0a1a',color:'white' }}>Загрузка...</div>;
+
+  const s = { width:'100%',padding:'12px 15px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'8px',color:'white',fontSize:'15px',boxSizing:'border-box' };
 
   return (
-    <div className="form-page">
-      <button onClick={() => router.push('/dashboard')} className="back-btn">
-        ← Назад к выбору
-      </button>
+    <div style={{ minHeight:'100vh',background:'linear-gradient(135deg,#0a0a1a 0%,#1a1a3e 100%)',padding:'30px',color:'white' }}>
+      <button onClick={() => router.push('/dashboard')} style={{ background:'rgba(255,255,255,0.1)',color:'white',border:'1px solid rgba(255,255,255,0.2)',padding:'10px 20px',borderRadius:'8px',cursor:'pointer',marginBottom:'20px' }}>← Назад</button>
       
-      <div className="form-container">
-        <h1>🏖️ Заявление на отпуск</h1>
+      <div style={{ maxWidth:'600px',margin:'0 auto',background:'rgba(255,255,255,0.05)',borderRadius:'20px',padding:'40px',border:'1px solid rgba(255,255,255,0.1)' }}>
+        <h1 style={{ marginBottom:'30px',fontSize:'28px' }}>🏖️ Заявление на отпуск</h1>
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Тип отпуска *</label>
-            <select
-              required
-              value={formData.leaveType}
-              onChange={(e) => setFormData({...formData, leaveType: e.target.value})}
-              className="select-input"
-            >
+          <div style={{ marginBottom:'20px' }}>
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Тип отпуска *</label>
+            <select required value={formData.leaveType} onChange={e => setFormData({...formData,leaveType:e.target.value})} style={{...s,appearance:'none',cursor:'pointer'}}>
               <option value="">-- Выберите тип --</option>
-              {LEAVE_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
+              {LEAVE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Имя Фамилия + Статик *</label>
-            <input 
-              type="text" 
-              required
-              value={formData.fullName}
-              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-              placeholder="Например: Sanya Suspect 270726"
-            />
+          <div style={{ marginBottom:'20px' }}>
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Имя Фамилия + Статик *</label>
+            <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData,fullName:e.target.value})} placeholder="Sanya Suspect 270726" style={s} />
           </div>
 
-          <div className="form-group">
-            <label>Отдел *</label>
-            <select
-              required
-              value={formData.department}
-              onChange={(e) => setFormData({...formData, department: e.target.value})}
-              className="select-input"
-            >
+          <div style={{ marginBottom:'20px' }}>
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Отдел *</label>
+            <select required value={formData.department} onChange={e => setFormData({...formData,department:e.target.value})} style={{...s,appearance:'none',cursor:'pointer'}}>
               <option value="">-- Выберите отдел --</option>
-              {DEPARTMENTS.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.emoji} {dept.name}
-                </option>
-              ))}
+              {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.name}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Причина отпуска *</label>
-            <textarea 
-              required
-              value={formData.reason}
-              onChange={(e) => setFormData({...formData, reason: e.target.value})}
-              placeholder="Опишите причину отпуска..."
-              rows="3"
-            />
+          <div style={{ marginBottom:'20px' }}>
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Причина *</label>
+            <textarea required value={formData.reason} onChange={e => setFormData({...formData,reason:e.target.value})} placeholder="Опишите причину..." rows="3" style={{...s,resize:'vertical',minHeight:'100px'}} />
           </div>
 
-          <div className="form-row">
-            <div className="form-group half">
-              <label>Дата начала *</label>
-              <input 
-                type="text" 
-                required
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                placeholder="Например: 15.08.2024"
-              />
+          <div style={{ display:'flex',gap:'15px',marginBottom:'20px' }}>
+            <div style={{ flex:1 }}>
+              <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Дата начала *</label>
+              <input type="text" required value={formData.startDate} onChange={e => setFormData({...formData,startDate:e.target.value})} placeholder="15.08.2024" style={s} />
             </div>
-            <div className="form-group half">
-              <label>Дата окончания *</label>
-              <input 
-                type="text" 
-                required
-                value={formData.endDate}
-                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                placeholder="Например: 20.08.2024"
-              />
+            <div style={{ flex:1 }}>
+              <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Дата окончания *</label>
+              <input type="text" required value={formData.endDate} onChange={e => setFormData({...formData,endDate:e.target.value})} placeholder="20.08.2024" style={s} />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Discord ID</label>
-            <input 
-              type="text" 
-              value={`${user.username} (${user.id})`}
-              disabled 
-              className="disabled-input" 
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={submitting || !isFormValid()}
-          >
-            {submitting ? '⏳ Отправка...' : '📤 Отправить заявление'}
+          <button type="submit" disabled={submitting || !isValid()} style={{ width:'100%',padding:'14px',background:'#00BCD4',color:'white',border:'none',borderRadius:'10px',fontSize:'16px',fontWeight:600,cursor:submitting?'not-allowed':'pointer',opacity:submitting?0.5:1,marginTop:'10px' }}>
+            {submitting ? '⏳ Отправка...' : '📤 Отправить'}
           </button>
         </form>
       </div>
-
-      <style jsx>{`
-        .form-page {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
-          padding: 30px;
-        }
-        .back-btn {
-          background: rgba(255, 255, 255, 0.08);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 10px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-          margin-bottom: 20px;
-          transition: all 0.2s;
-          font-size: 14px;
-        }
-        .back-btn:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-        .form-container {
-          max-width: 600px;
-          margin: 0 auto;
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border-radius: 20px;
-          padding: 40px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        h1 {
-          color: white;
-          margin-bottom: 30px;
-          font-size: 28px;
-        }
-        .form-group {
-          margin-bottom: 20px;
-        }
-        .form-row {
-          display: flex;
-          gap: 15px;
-        }
-        .half {
-          flex: 1;
-        }
-        label {
-          display: block;
-          color: #8b8ba7;
-          margin-bottom: 8px;
-          font-size: 14px;
-          font-weight: 500;
-        }
-        input, textarea, .select-input {
-          width: 100%;
-          padding: 12px 15px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 8px;
-          color: white;
-          font-size: 15px;
-          transition: border-color 0.2s;
-          box-sizing: border-box;
-        }
-        .select-input {
-          appearance: none;
-          cursor: pointer;
-        }
-        .select-input option {
-          background: #1a1a3e;
-          color: white;
-        }
-        input:focus, textarea:focus, .select-input:focus {
-          outline: none;
-          border-color: #5865F2;
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .disabled-input {
-          opacity: 0.5;
-          cursor: not-allowed;
-          background: rgba(255, 255, 255, 0.03);
-        }
-        textarea {
-          resize: vertical;
-          min-height: 100px;
-        }
-        .submit-btn {
-          width: 100%;
-          padding: 14px;
-          background: #00BCD4;
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          margin-top: 10px;
-        }
-        .submit-btn:hover:not(:disabled) {
-          background: #0097A7;
-          transform: translateY(-1px);
-        }
-        .submit-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: #0a0a1a;
-        }
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid rgba(88, 101, 242, 0.2);
-          border-top-color: #5865F2;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 15px;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .loading-container p {
-          color: #8b8ba7;
-        }
-      `}</style>
     </div>
   );
 }

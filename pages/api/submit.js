@@ -197,7 +197,9 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: spamCheck.message });
   }
 
-  const { type, department, targetDepartment, leaveType, ...formData } = req.body;
+const { type, leaveType, ...formData } = req.body;
+const department = formData.department;
+const targetDepartment = formData.targetDepartment;
 
   const allText = Object.values(formData).filter(val => typeof val === 'string').join(' ');
   

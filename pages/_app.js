@@ -11,6 +11,7 @@ export default function App({ Component, pageProps }) {
     let width, height;
     const particles = [];
     const confetti = [];
+    const smokeTrails = [];
     const mouse = { x: -100, y: -100, prevX: -100, prevY: -100, speed: 0 };
 
     function resize() {
@@ -20,7 +21,35 @@ export default function App({ Component, pageProps }) {
     resize();
     window.addEventListener('resize', resize);
 
-    // Частицы под курсором (размер и количество зависят от скорости)
+    // ========== ДЫМКА (градиентовый шлейф) ==========
+    class SmokeParticle {
+      constructor(x, y, speed) {
+        this.x = x + (Math.random() - 0.5) * 10;
+        this.y = y + (Math.random() - 0.5) * 10;
+        this.size = 15 + speed * 2 + Math.random() * 20;
+        this.life = 1;
+        this.decay = 0.008 + Math.random() * 0.012;
+        this.hue = Math.random() * 40 + 220; // сине-фиолетовый
+      }
+      update() {
+        this.x += (Math.random() - 0.5) * 0.3;
+        this.y += (Math.random() - 0.5) * 0.3;
+        this.size += 0.5;
+        this.life -= this.decay;
+      }
+      draw(ctx) {
+        const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+        g.addColorStop(0, `hsla(${this.hue}, 80%, 60%, ${this.life * 0.15})`);
+        g.addColorStop(0.4, `hsla(${this.hue}, 60%, 50%, ${this.life * 0.08})`);
+        g.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+      }
+    }
+
+    // ========== ЧАСТИЦЫ ПОД КУРСОРОМ ==========
     class Particle {
       constructor(x, y, speed) {
         this.x = x;
@@ -48,7 +77,7 @@ export default function App({ Component, pageProps }) {
       }
     }
 
-    // Конфетти
+    // ========== КОНФЕТТИ ==========
     class Confetti {
       constructor() { this.reset(true); }
       reset(init) {
@@ -86,23 +115,40 @@ export default function App({ Component, pageProps }) {
       mouse.x = e.clientX; mouse.y = e.clientY;
       mouse.speed = Math.sqrt(dx * dx + dy * dy);
 
+      // Частицы
       const count = Math.floor(mouse.speed / 3) + 1;
       for (let i = 0; i < Math.min(count, 12); i++) {
         particles.push(new Particle(mouse.x, mouse.y, mouse.speed));
+      }
+
+      // Дымка (1-3 облачка за кадр, зависит от скорости)
+      const smokeCount = Math.floor(mouse.speed / 8) + 1;
+      for (let i = 0; i < Math.min(smokeCount, 3); i++) {
+        smokeTrails.push(new SmokeParticle(mouse.x, mouse.y, mouse.speed));
       }
     });
 
     function animate() {
       ctx.clearRect(0, 0, width, height);
 
+      // Дымка (рисуем ПЕРВОЙ чтобы была под всем)
+      for (let i = smokeTrails.length - 1; i >= 0; i--) {
+        smokeTrails[i].update();
+        smokeTrails[i].draw(ctx);
+        if (smokeTrails[i].life <= 0) smokeTrails.splice(i, 1);
+      }
+
+      // Конфетти
       confetti.forEach(c => { c.update(); c.draw(ctx); });
 
+      // Частицы
       for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update();
         particles[i].draw(ctx);
         if (particles[i].life <= 0) particles.splice(i, 1);
       }
 
+      // Свечение под курсором
       const glowSize = 20 + mouse.speed * 1.5;
       const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, glowSize);
       g.addColorStop(0, `rgba(88, 101, 242, ${0.2 + mouse.speed * 0.01})`);

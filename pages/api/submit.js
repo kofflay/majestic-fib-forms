@@ -257,7 +257,7 @@ const targetDepartment = formData.targetDepartment;
   } else if (type === 'weapon-request') {
     webhookUrl = webhooks['weapon-request'];
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для запроса вооружения не настроен' });
-    roleMentions = '<@&1274110499356934211>';
+    roleMentions = '<@&1289343511354671125>';
   } else if (type === 'leave') {
     webhookUrl = webhooks.leave;
     if (!webhookUrl) return res.status(500).json({ error: 'Вебхук для отпусков не настроен' });

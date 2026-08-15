@@ -194,7 +194,18 @@ export default async function handler(req, res) {
     ...(threadId ? { thread_id: threadId } : {})
   });
 
-  if (result.success) res.status(200).json({ success: true });
+  if (result.success) {
+  const today = new Date().toISOString().split('T')[0];
+  await kv.incr('fib:stats:total');
+  await kv.incr(`fib:stats:${today}`);
+  await kv.lpush(`fib:history:${user.id}`, JSON.stringify({
+    type, title: embed.title, date: new Date().toISOString(), id: Date.now().toString(36)
+  }));
+  await kv.ltrim(`fib:history:${user.id}`, 0, 49);
+  res.status(200).json({ success: true });
+} else {
+  res.status(500).json({ error: `Не удалось отправить: ${result.error}` });
+}
   else res.status(500).json({ error: `Не удалось отправить: ${result.error}` });
 }
 

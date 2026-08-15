@@ -25,6 +25,7 @@ export default function LeaveForm() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [profile, setProfile] = useState({ fullName: '', department: '' });
   const [formData, setFormData] = useState({
     leaveType: '',
     fullName: '',
@@ -41,6 +42,16 @@ export default function LeaveForm() {
         if (!d.user) { router.push('/'); return; }
         setUser(d.user);
         setLoading(false);
+      });
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(d => {
+        setProfile(d.profile);
+        setFormData(prev => ({
+          ...prev,
+          fullName: d.profile.fullName || '',
+          department: d.profile.department || ''
+        }));
       });
   }, []);
 
@@ -77,7 +88,7 @@ export default function LeaveForm() {
     finally { setSubmitting(false); }
   };
 
-  if (loading) return <div style={{ display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#0a0a1a',color:'white' }}>Загрузка...</div>;
+  if (loading || !user) return <div style={{ display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#0a0a1a',color:'white' }}>Загрузка...</div>;
 
   const s = { width:'100%',padding:'12px 15px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'8px',color:'white',fontSize:'15px',boxSizing:'border-box' };
 
@@ -98,13 +109,13 @@ export default function LeaveForm() {
           </div>
 
           <div style={{ marginBottom:'20px' }}>
-            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Имя Фамилия + Статик *</label>
-            <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData,fullName:e.target.value})} placeholder="Sanya Suspect 270726" style={s} />
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Имя Фамилия + Статик * {profile.fullName && <span style={{ color:'#4CAF50',fontSize:'12px' }}>(из профиля)</span>}</label>
+            <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData,fullName:e.target.value})} placeholder="Sanya Suspect 270726" disabled={!!profile.fullName} style={{...s,opacity:profile.fullName?0.5:1,cursor:profile.fullName?'not-allowed':'text'}} />
           </div>
 
           <div style={{ marginBottom:'20px' }}>
-            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Отдел *</label>
-            <select required value={formData.department} onChange={e => setFormData({...formData,department:e.target.value})} style={{...s,appearance:'none',cursor:'pointer'}}>
+            <label style={{ display:'block',marginBottom:'8px',color:'#8b8ba7' }}>Отдел * {profile.department && <span style={{ color:'#4CAF50',fontSize:'12px' }}>(из профиля)</span>}</label>
+            <select required value={formData.department} onChange={e => setFormData({...formData,department:e.target.value})} disabled={!!profile.department} style={{...s,appearance:'none',cursor:profile.department?'not-allowed':'pointer',opacity:profile.department?0.5:1}}>
               <option value="">-- Выберите отдел --</option>
               {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.name}</option>)}
             </select>
@@ -132,7 +143,6 @@ export default function LeaveForm() {
         </form>
       </div>
 
-      {/* 👇 ФИКС ДЛЯ SELECT (чтобы текст был виден) */}
       <style jsx>{`
         select option {
           background-color: #1a1a3e !important;

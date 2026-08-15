@@ -84,7 +84,6 @@ export default async function handler(req, res) {
 
   const allText = Object.values(formData).filter(v => typeof v === 'string').join(' ');
 
-  // Банворды без бана + указание поля
   if (!isWhitelisted && containsBadWords(allText)) {
     const foundWord = findBadWord(allText);
 
@@ -195,18 +194,17 @@ export default async function handler(req, res) {
   });
 
   if (result.success) {
-  const today = new Date().toISOString().split('T')[0];
-  await kv.incr('fib:stats:total');
-  await kv.incr(`fib:stats:${today}`);
-  await kv.lpush(`fib:history:${user.id}`, JSON.stringify({
-    type, title: embed.title, date: new Date().toISOString(), id: Date.now().toString(36)
-  }));
-  await kv.ltrim(`fib:history:${user.id}`, 0, 49);
-  res.status(200).json({ success: true });
-} else {
-  res.status(500).json({ error: `Не удалось отправить: ${result.error}` });
-}
-  else res.status(500).json({ error: `Не удалось отправить: ${result.error}` });
+    const today = new Date().toISOString().split('T')[0];
+    await kv.incr('fib:stats:total');
+    await kv.incr(`fib:stats:${today}`);
+    await kv.lpush(`fib:history:${user.id}`, JSON.stringify({
+      type, title: embed.title, date: new Date().toISOString(), id: Date.now().toString(36)
+    }));
+    await kv.ltrim(`fib:history:${user.id}`, 0, 49);
+    res.status(200).json({ success: true });
+  } else {
+    res.status(500).json({ error: `Не удалось отправить: ${result.error}` });
+  }
 }
 
 function getFormTitle(type, department, targetDepartment, leaveType) {

@@ -65,7 +65,6 @@ export default async function handler(req, res) {
   const isWhitelisted = WHITELIST.includes(user.id);
 
   if (!isWhitelisted) {
-    // Глобальный лимит
     const isLocked = await kv.get('fib:global:locked');
     if (isLocked) { const ttl = await kv.ttl('fib:global:locked'); return res.status(429).json({ error: `🚫 Сайт временно недоступен. Подождите ${Math.ceil((ttl||3600)/60)} минут.` }); }
     const gc = await kv.get('fib:global:requests');
@@ -73,10 +72,8 @@ export default async function handler(req, res) {
     if (ngc > 5) { await kv.set('fib:global:locked', '1', { ex: 3600 }); await kv.del('fib:global:requests'); return res.status(429).json({ error: '🚫 Сайт временно заблокирован на 1 час.' }); }
     await kv.set('fib:global:requests', ngc, { ex: 20 });
 
-    // Бан
     if (await isBlacklisted(user.id, ip)) return res.status(403).json({ error: '⛔ Вы заблокированы.' });
 
-    // Спам
     const spamCheck = await checkSpam(user.id, ip);
     if (spamCheck.isSpam) { if (spamCheck.ban) await addToBlacklist(user.id, user.username, spamCheck.reason, ip); return res.status(429).json({ error: spamCheck.message }); }
   }
@@ -87,15 +84,35 @@ export default async function handler(req, res) {
 
   const allText = Object.values(formData).filter(v => typeof v === 'string').join(' ');
 
+  // Банворды без бана + указание поля
   if (!isWhitelisted && containsBadWords(allText)) {
     const foundWord = findBadWord(allText);
 
-    // Уведомление в Discord (без бана)
-    await sendBanWordAlert(user, foundWord, allText, type, req);
+    const fieldNames = {
+      fullName: 'Имя Фамилия + Статик', age: 'Возраст', experience: 'Опыт работы',
+      lawKnowledge: 'Знание законов', passport: 'Скриншот паспорта', militaryId: 'Военный билет',
+      medical: 'Мед. справки', reason: 'Причина', rank: 'Ранг', weapon: 'Оружие',
+      currentDepartment: 'Текущий отдел', targetDepartment: 'Желаемый отдел',
+      startDate: 'Дата начала', endDate: 'Дата окончания', rankRange: 'Диапазон рангов',
+      reportLink: 'Ссылка на отчет', workLink: 'Ссылка на работу', workLinks: 'Ссылки на работу',
+      screenshot: 'Скриншот', rankProof: 'Доказательство ранга', approvalProof: 'Одобрение',
+      stateFractionsProof: 'Скрин одобрения', rankAtDismissal: 'Ранг при увольнении',
+      cidWhatIs: 'Что такое CID', cidExperience: 'Опыт в CID', cidExamples: 'Примеры работ',
+      cidServers: 'Серверы с CID', cidKnowledge: 'Знания CID', cidLawKnowledge: 'Знания законки',
+      faRules: 'Правила ПОИП', faPrevious: 'Был в FA'
+    };
 
-    // Просто ошибка с указанием слова
-    return res.status(400).json({
-      error: `❌ В заявке найдено запрещённое слово: "${foundWord}". Форма не отправлена.`
+    let fieldName = 'заявке';
+    for (const [key, value] of Object.entries(formData)) {
+      if (typeof value === 'string' && value.toLowerCase().includes(foundWord.toLowerCase())) {
+        fieldName = fieldNames[key] || key;
+        break;
+      }
+    }
+
+    await sendBanWordAlert(user, foundWord, allText, type, req);
+    return res.status(400).json({ 
+      error: `❌ В поле "${fieldName}" найдено запрещённое слово: "${foundWord}". Форма не отправлена.` 
     });
   }
 

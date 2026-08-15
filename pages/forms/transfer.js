@@ -35,6 +35,7 @@ export default function TransferForm() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [profile, setProfile] = useState({ fullName: '', department: '' });
   const [formData, setFormData] = useState({
     fullName: '',
     rank: '',
@@ -96,6 +97,16 @@ export default function TransferForm() {
         setUser(data.user);
         setLoading(false);
       });
+    fetch('/api/profile')
+      .then(res => res.json())
+      .then(data => {
+        setProfile(data.profile);
+        setFormData(prev => ({
+          ...prev,
+          fullName: data.profile.fullName || '',
+          currentDepartment: data.profile.department || ''
+        }));
+      });
   }, []);
 
   const handleSubmit = async (e) => {
@@ -152,7 +163,7 @@ export default function TransferForm() {
     }
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
@@ -172,13 +183,15 @@ export default function TransferForm() {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Имя Фамилия + Статик *</label>
+            <label>Имя Фамилия + Статик * {profile.fullName && <span style={{ color:'#4CAF50',fontSize:'12px' }}>(из профиля)</span>}</label>
             <input 
               type="text" 
               required
               value={formData.fullName}
               onChange={(e) => setFormData({...formData, fullName: e.target.value})}
               placeholder="Например: Sanya Suspect 270726"
+              disabled={!!profile.fullName}
+              className={profile.fullName ? 'disabled-input' : ''}
             />
           </div>
 
@@ -198,12 +211,14 @@ export default function TransferForm() {
           </div>
 
           <div className="form-group">
-            <label>Ваш текущий отдел *</label>
+            <label>Ваш текущий отдел * {profile.department && <span style={{ color:'#4CAF50',fontSize:'12px' }}>(из профиля)</span>}</label>
             <select
               required
               value={formData.currentDepartment}
               onChange={(e) => setFormData({...formData, currentDepartment: e.target.value})}
               className="select-input"
+              disabled={!!profile.department}
+              style={profile.department ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
             >
               <option value="">-- Выберите текущий отдел --</option>
               {DEPARTMENTS.map(dept => (
@@ -527,7 +542,6 @@ export default function TransferForm() {
         .loading-container p {
           color: #8b8ba7;
         }
-
         .warning-box {
           border-radius: 10px;
           padding: 14px 18px;
@@ -549,7 +563,6 @@ export default function TransferForm() {
           font-size: 14px;
           line-height: 1.4;
         }
-
         .extra-fields {
           border-radius: 12px;
           padding: 20px;

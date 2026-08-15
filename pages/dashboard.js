@@ -1,6 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
+const categories = [
+  {
+    title: '📝 Электронные заявления',
+    color: '#4CAF50',
+    items: [
+      { id: 'hiring', title: 'Трудоустройство в FIB', description: 'Подать заявку на вступление в FIB', icon: '📝' },
+      { id: 'transfer-to-fib', title: 'Перевод в FIB', description: 'Перевод из другой организации', icon: '🏛️' },
+      { id: 'reinstatement', title: 'Восстановление в FIB', description: 'Восстановление в FIB', icon: '🔄' }
+    ]
+  },
+  {
+    title: '📋 Секретариат',
+    color: '#2196F3',
+    items: [
+      { id: 'promotion', title: 'Запрос на повышение', description: 'Подать запрос на повышение', icon: '📈' },
+      { id: 'resignation', title: 'Заявление на увольнение', description: 'Подать заявление на увольнение', icon: '🚪' },
+      { id: 'leave', title: 'Отпуск', description: 'OOC или IC отпуск', icon: '🏖️' },
+      { id: 'weapon-request', title: 'Спец вооружение', description: 'Запрос на получение спец вооружения', icon: '🔫' }
+    ]
+  },
+  {
+    title: '🏢 Отделы',
+    color: '#FF9800',
+    items: [
+      { id: 'transfer', title: 'Перевод в отдел', description: 'Перевод в другой отдел FIB', icon: '🔄' },
+      { id: 'report', title: 'Отчёт о повышении', description: 'Отчёт для своего отдела', icon: '📋' }
+    ]
+  },
+  {
+    title: '🌟 Старший состав',
+    color: '#FF69B4',
+    items: [
+      { id: 'high-rank-report', title: 'Отчёт на повышение (Хай Ранги)', description: 'Повышение для старшего состава', icon: '🌟' }
+    ]
+  }
+];
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -26,196 +63,44 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Загрузка...</p>
+      <div style={{ display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#0a0a1a',color:'white' }}>
+        Загрузка...
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
-      <div className="header">
-        <h1>🏛️ Majestic FIB Forms</h1>
-        <div className="user-info">
-          <img 
-            src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} 
-            alt="Avatar" 
-            className="avatar"
-          />
+    <div style={{ minHeight:'100vh',background:'linear-gradient(135deg,#0a0a1a 0%,#1a1a3e 100%)',padding:'30px',color:'white' }}>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',maxWidth:'1200px',margin:'0 auto 30px',padding:'20px',background:'rgba(255,255,255,0.03)',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.08)' }}>
+        <h1 style={{ fontSize:'28px',margin:0 }}>🏛️ Majestic FIB Forms</h1>
+        <div style={{ display:'flex',alignItems:'center',gap:'15px',color:'#8b8ba7' }}>
+          <img src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} alt="Avatar" style={{ width:'40px',height:'40px',borderRadius:'50%' }} />
           <span>{user.username}</span>
-          <button onClick={handleLogout} className="logout-btn">Выйти</button>
+          <button onClick={handleLogout} style={{ background:'rgba(255,255,255,0.08)',color:'white',border:'1px solid rgba(255,255,255,0.15)',padding:'8px 16px',borderRadius:'8px',cursor:'pointer' }}>Выйти</button>
         </div>
       </div>
 
-      <div className="cards-grid">
-        <div className="card" onClick={() => router.push('/forms/promotion')}>
-          <div className="card-icon">📈</div>
-          <h3>Запрос на повышение</h3>
-          <p>Подать запрос на повышение</p>
-        </div>
-
-          <div className="card" onClick={() => router.push('/forms/weapon-request')}>
-          <div className="card-icon">🔫</div>
-          <h3>Запрос на спец вооружение</h3>
-          <p>Подать запрос на получение спец вооружения</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/transfer')}>
-          <div className="card-icon">🔄</div>
-          <h3>Перевод в отдел</h3>
-          <p>Подать заявку на перевод в другой отдел</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/report')}>
-          <div className="card-icon">📋</div>
-          <h3>Отчёт о повышении</h3>
-          <p>Подать отчёт о повышении для своего отдела</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/hiring')}>
-          <div className="card-icon">📝</div>
-          <h3>Трудоустройство в FIB</h3>
-          <p>Подать заявку на вступление в FIB</p>
-        </div>
-              
-        <div className="card" onClick={() => router.push('/forms/high-rank-report')}>
-          <div className="card-icon">🌟</div>
-          <h3>Отчёт на повышение (Хай Ранги)</h3>
-          <p>Повышение для старшего состава</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/resignation')}>
-          <div className="card-icon">🚪</div>
-          <h3>Заявление на увольнение</h3>
-          <p>Подать заявление на увольнение из FIB</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/reinstatement')}>
-          <div className="card-icon">🔄</div>
-          <h3>Восстановление в FIB</h3>
-          <p>Подать заявку на восстановление в FIB</p>
-        </div>
-
-          <div className="card" onClick={() => router.push('/forms/leave')}>
-          <div className="card-icon">🏖️</div>
-          <h3>Заявление на отпуск</h3>
-          <p>Подать заявление на OOC или IC отпуск</p>
-        </div>
-
-        <div className="card" onClick={() => router.push('/forms/transfer-to-fib')}>
-          <div className="card-icon">🏛️</div>
-          <h3>Перевод в FIB</h3>
-          <p>Подать заявку на перевод в FIB из другой организации</p>
-        </div>
+      <div style={{ maxWidth:'1200px',margin:'0 auto' }}>
+        {categories.map(cat => (
+          <div key={cat.title} style={{ marginBottom:'35px' }}>
+            <h2 style={{ fontSize:'22px',marginBottom:'20px',paddingBottom:'10px',borderBottom:`2px solid ${cat.color}`,display:'inline-block' }}>
+              {cat.title}
+            </h2>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(250px,1fr))',gap:'15px' }}>
+              {cat.items.map(item => (
+                <div key={item.id} onClick={() => router.push(`/forms/${item.id}`)} 
+                  style={{ background:'rgba(255,255,255,0.03)',backdropFilter:'blur(10px)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px',padding:'25px',cursor:'pointer',textAlign:'center',position:'relative',overflow:'hidden' }}
+                >
+                  <div style={{ position:'absolute',top:0,left:0,width:'4px',height:'100%',background:cat.color }}></div>
+                  <div style={{ fontSize:'36px',marginBottom:'10px' }}>{item.icon}</div>
+                  <h3 style={{ fontSize:'16px',marginBottom:'8px' }}>{item.title}</h3>
+                  <p style={{ color:'#8b8ba7',fontSize:'13px',margin:0 }}>{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-
-      <style jsx>{`
-        .dashboard {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
-          padding: 30px;
-        }
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          max-width: 1200px;
-          margin: 0 auto 40px;
-          padding: 20px;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .header h1 {
-          color: white;
-          font-size: 28px;
-          margin: 0;
-        }
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          color: #8b8ba7;
-        }
-        .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-        }
-        .logout-btn {
-          background: rgba(255, 255, 255, 0.08);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 8px 16px;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .logout-btn:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-        .cards-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        .card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 16px;
-          padding: 30px;
-          cursor: pointer;
-          transition: all 0.3s;
-          text-align: center;
-        }
-        .card:hover {
-          transform: translateY(-5px);
-          background: rgba(255, 255, 255, 0.06);
-          border-color: #5865F2;
-          box-shadow: 0 10px 30px rgba(88, 101, 242, 0.15);
-        }
-        .card-icon {
-          font-size: 48px;
-          margin-bottom: 15px;
-        }
-        .card h3 {
-          color: white;
-          font-size: 18px;
-          margin-bottom: 10px;
-        }
-        .card p {
-          color: #8b8ba7;
-          font-size: 14px;
-          margin: 0;
-        }
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: #0a0a1a;
-        }
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid rgba(88, 101, 242, 0.2);
-          border-top-color: #5865F2;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 15px;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .loading-container p {
-          color: #8b8ba7;
-        }
-      `}</style>
     </div>
   );
 }

@@ -1,45 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-const DEPARTMENTS = [
-  { id: 'ib', name: 'IB (Intelligence Branch)', emoji: '🕵️' },
-  { id: 'cid', name: 'CID (Criminal Investigation Department)', emoji: '🔍' },
-  { id: 'fa', name: 'FA (Free Agent)', emoji: '🆓' },
-  { id: 'hrt', name: 'HRT (Hostage Rescue Team)', emoji: '🛡️' },
-  { id: 'atf', name: 'ATF (Anti Terrorism Force)', emoji: '💥' },
-  { id: 'af', name: 'AF (Air Force)', emoji: '✈️' },
-  { id: 'ocu', name: 'OCU (Organized Crime Unit)', emoji: '⚖️' },
-  { id: 'dea', name: 'DEA (Drug Enforcement Administration)', emoji: '💊' },
-  { id: 'fna', name: 'FNA (Federal National Academy)', emoji: '📚' },
-  { id: 'nsb', name: 'NSB (National Security Branch)', emoji: '🏛️' },
-  { id: 'trainee', name: 'Trainee (Стажёр)', emoji: '📖' }
-];
-
-const RANKS = [
-  { value: '1', label: '1' }, { value: '2', label: '2' },
-  { value: '3', label: '3' }, { value: '4', label: '4' },
-  { value: '5', label: '5' }, { value: '6', label: '6' },
-  { value: '7', label: '7' }, { value: '8', label: '8' },
-  { value: '9', label: '9' }, { value: '10', label: '10' }
-];
-
-export default function ReportForm() {
+export default function ResignationForm() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [profile, setProfile] = useState({ fullName: '', department: '' });
+  const [profile, setProfile] = useState({ fullName: '' });
   const [formData, setFormData] = useState({
     fullName: '',
-    department: '',
-    currentRank: '',
-    targetRank: '',
-    isInstructor: '',
-    workLinks: ''
+    screenshot: ''
   });
-
-  const targetRankNum = parseInt(formData.targetRank);
-  const showInstructorField = (targetRankNum === 9 || targetRankNum === 10) && formData.department !== 'fa';
 
   useEffect(() => {
     fetch('/api/me')
@@ -56,22 +27,14 @@ export default function ReportForm() {
       .then(res => res.json())
       .then(data => {
         setProfile(data.profile);
-        setFormData(prev => ({
-          ...prev,
-          fullName: data.profile.fullName || '',
-          department: data.profile.department || ''
-        }));
+        if (data.profile.fullName) {
+          setFormData(prev => ({ ...prev, fullName: data.profile.fullName }));
+        }
       });
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (showInstructorField && formData.isInstructor !== 'yes') {
-      alert('⚠️ Для повышения на 9 или 10 ранг необходимо подтвердить назначение на инструктора!');
-      return;
-    }
-
     setSubmitting(true);
     
     try {
@@ -79,25 +42,21 @@ export default function ReportForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'report',
-          department: formData.department,
+          type: 'resignation',
           fullName: formData.fullName,
-          currentRank: formData.currentRank,
-          targetRank: formData.targetRank,
-          isInstructor: formData.isInstructor || 'no',
-          workLinks: formData.workLinks
+          screenshot: formData.screenshot
         })
       });
 
       if (res.ok) {
-        alert('✅ Отчёт успешно отправлен!');
+        alert('✅ Заявление на увольнение успешно отправлено!');
         router.push('/dashboard');
       } else {
         const error = await res.json();
         throw new Error(error.error || 'Ошибка отправки');
       }
     } catch (error) {
-      alert('❌ Ошибка при отправке отчёта: ' + error.message);
+      alert('❌ Ошибка при отправке заявления: ' + error.message);
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +78,7 @@ export default function ReportForm() {
       </button>
       
       <div className="form-container">
-        <h1>📋 Отчёт о повышении</h1>
+        <h1>📋 Заявление на увольнение</h1>
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -136,86 +95,12 @@ export default function ReportForm() {
           </div>
 
           <div className="form-group">
-            <label>Выберите отдел * {profile.department && <span style={{ color:'#4CAF50',fontSize:'12px' }}>(из профиля)</span>}</label>
-            <select
-              required
-              value={formData.department}
-              onChange={(e) => setFormData({...formData, department: e.target.value})}
-              className="select-input"
-              disabled={!!profile.department}
-              style={profile.department ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-            >
-              <option value="">-- Выберите отдел --</option>
-              {DEPARTMENTS.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.emoji} {dept.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Ваш текущий ранг *</label>
-            <select
-              required
-              value={formData.currentRank}
-              onChange={(e) => setFormData({...formData, currentRank: e.target.value})}
-              className="select-input"
-            >
-              <option value="">-- Выберите текущий ранг --</option>
-              {RANKS.map(rank => (
-                <option key={rank.value} value={rank.value}>{rank.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>На какой ранг повышаетесь *</label>
-            <select
-              required
-              value={formData.targetRank}
-              onChange={(e) => {
-                setFormData({
-                  ...formData, 
-                  targetRank: e.target.value,
-                  isInstructor: ''
-                });
-              }}
-              className="select-input"
-            >
-              <option value="">-- Выберите целевой ранг --</option>
-              {RANKS.map(rank => (
-                <option key={rank.value} value={rank.value}>{rank.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {showInstructorField && (
-            <div className="form-group instructor-field">
-              <label>Назначены ли вы на инструктора? *</label>
-              <select
-                required
-                value={formData.isInstructor}
-                onChange={(e) => setFormData({...formData, isInstructor: e.target.value})}
-                className="select-input"
-              >
-                <option value="">-- Выберите ответ --</option>
-                <option value="yes">✅ Да</option>
-                <option value="no">❌ Нет</option>
-              </select>
-              <div className="hint">
-                ⚠️ Для повышения на 9 или 10 ранг необходимо быть назначенным на инструктора
-              </div>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label>Ссылки на проделанную работу *</label>
+            <label>Скриншот планшета *</label>
             <textarea 
               required
-              value={formData.workLinks}
-              onChange={(e) => setFormData({...formData, workLinks: e.target.value})}
-              placeholder="Вставьте ссылки на ваши отчёты, посты или другие доказательства работы..."
+              value={formData.screenshot}
+              onChange={(e) => setFormData({...formData, screenshot: e.target.value})}
+              placeholder="Вставьте ссылку на скриншот планшета (например, ссылка на Imgur или Discord)..."
               rows="4"
             />
           </div>
@@ -230,12 +115,8 @@ export default function ReportForm() {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={submitting || (showInstructorField && formData.isInstructor !== 'yes')}
-          >
-            {submitting ? '⏳ Отправка...' : '📤 Отправить отчёт'}
+          <button type="submit" className="submit-btn" disabled={submitting}>
+            {submitting ? '⏳ Отправка...' : '📤 Отправить заявление'}
           </button>
         </form>
       </div>
@@ -284,7 +165,7 @@ export default function ReportForm() {
           font-size: 14px;
           font-weight: 500;
         }
-        input, textarea, .select-input {
+        input, textarea {
           width: 100%;
           padding: 12px 15px;
           background: rgba(255, 255, 255, 0.05);
@@ -295,15 +176,7 @@ export default function ReportForm() {
           transition: border-color 0.2s;
           box-sizing: border-box;
         }
-        .select-input {
-          appearance: none;
-          cursor: pointer;
-        }
-        .select-input option {
-          background: #1a1a3e;
-          color: white;
-        }
-        input:focus, textarea:focus, .select-input:focus {
+        input:focus, textarea:focus {
           outline: none;
           border-color: #5865F2;
           background: rgba(255, 255, 255, 0.08);
@@ -320,7 +193,7 @@ export default function ReportForm() {
         .submit-btn {
           width: 100%;
           padding: 14px;
-          background: #5865F2;
+          background: #dc3545;
           color: white;
           border: none;
           border-radius: 10px;
@@ -331,7 +204,7 @@ export default function ReportForm() {
           margin-top: 10px;
         }
         .submit-btn:hover:not(:disabled) {
-          background: #4752C4;
+          background: #c82333;
           transform: translateY(-1px);
         }
         .submit-btn:disabled {
@@ -360,22 +233,6 @@ export default function ReportForm() {
         }
         .loading-container p {
           color: #8b8ba7;
-        }
-        .instructor-field {
-          background: rgba(255, 152, 0, 0.08);
-          border: 1px solid rgba(255, 152, 0, 0.25);
-          border-radius: 12px;
-          padding: 18px 18px 12px 18px;
-          animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .hint {
-          margin-top: 8px;
-          font-size: 13px;
-          color: #FFB74D;
         }
       `}</style>
     </div>
